@@ -1,19 +1,23 @@
 from flask import Flask, render_template, Response
-from picamera import PiCamera
-from io import BytesIO
-import time
+from picamera2 import Picamera2, Preview
+import cv2
+import io
 
 app = Flask(__name__)
-camera = PiCamera()
+
+# Initialize the camera
+picam2 = Picamera2()
+picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888"}))
+picam2.start()
 
 def gen_frames():
-    # Stream camera frames.
     while True:
-        frame = BytesIO()
-        camera.capture(frame, format='jpeg', use_video_port=True)
-        frame.seek(0)
+        frame = picam2.capture_array()
+        # Encode frame as JPEG
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame.read() + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/')
 def index():
@@ -26,6 +30,4 @@ def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    camera.start_preview()
-    time.sleep(2)  # Allow camera to warm up
     app.run(host='0.0.0.0', port=5000)
