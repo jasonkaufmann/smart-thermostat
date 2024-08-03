@@ -27,15 +27,15 @@ try:
         for servo in servos:
             # Move servo to 0 degrees.
             servo.angle = 0
-            time.sleep(1)
+            #time.sleep(1)
 
             # Move servo to 90 degrees.
-            servo.angle = 90
-            time.sleep(1)
+            #servo.angle = 90
+            #time.sleep(1)
 
             # Move servo to 180 degrees.
-            servo.angle = 180
-            time.sleep(1)
+            #servo.angle = 180
+            #time.sleep(1)
 
 except KeyboardInterrupt:
     pass
