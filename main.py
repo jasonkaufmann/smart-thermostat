@@ -88,15 +88,15 @@ def main():
     try:
         while True:
             # Calculate the time since the last action
-            time_since_last_action = time.time() - last_action_time
-
+            time_since_last_action = time.time() - last_action_time   # Assume start with time since last press > 45 seconds
+            print(time_since_last_action)
             # Log information to file
             log_info(current_temp, time_since_last_action, current_mode)
 
             # Display info on the console
-            print(f"Time since last action: {time_since_last_action:.1f} seconds")
-            print(f"Current set temperature: {current_temp}°F")
-            print(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
+            #print(f"Time since last action: {time_since_last_action:.1f} seconds")
+            #print(f"Current set temperature: {current_temp}°F")
+            #print(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
 
             # Get temperature input from user
             temp_input = input("Enter the desired temperature and press 'Enter': ").strip()
@@ -119,6 +119,7 @@ def main():
             cont = input("Press 'q' to quit or any other key to enter a new temperature: ").strip().lower()
             if cont == 'q':
                 break
+            time.sleep(0.5)  # Delay for 0.5 seconds
 
     finally:
         # Set all servos to a neutral position before exiting.
