@@ -3,7 +3,7 @@ import board
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
-import keyboard  # Import the keyboard module for detecting key presses
+from pynput import keyboard
 
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -26,33 +26,39 @@ def actuate_servo(servo):
     servo.angle = 0
     time.sleep(0.5)  # Delay for 0.5 seconds
 
-try:
-    # Set all servos to a neutral position at the start
-    servo_down.angle = 0
-    servo_mode.angle = 0
-    servo_up.angle = 0
-
-    print("Use the up and down arrow keys to control temperature, and the right arrow to switch modes. Press 'Ctrl+C' to exit.")
-    
-    while True:
-        if keyboard.is_pressed('up'):
+# Function to handle key press events
+def on_press(key):
+    try:
+        if key == keyboard.Key.up:
             actuate_servo(servo_up)
-            time.sleep(0.5)  # Add a delay to avoid continuous triggering
-
-        elif keyboard.is_pressed('down'):
+        elif key == keyboard.Key.down:
             actuate_servo(servo_down)
-            time.sleep(0.5)  # Add a delay to avoid continuous triggering
-
-        elif keyboard.is_pressed('right'):
+        elif key == keyboard.Key.right:
             actuate_servo(servo_mode)
-            time.sleep(0.5)  # Add a delay to avoid continuous triggering
+    except AttributeError:
+        # Handle special keys if needed
+        pass
 
+# Set all servos to a neutral position at the start
+servo_down.angle = 0
+servo_mode.angle = 0
+servo_up.angle = 0
+
+print("Use the arrow keys to control the servos. Press 'Ctrl+C' to exit.")
+
+# Start listening to keyboard events
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
+
+try:
+    while True:
+        time.sleep(0.1)  # Keep the program running
 except KeyboardInterrupt:
     pass
-
 finally:
     # Set all servos to a neutral position before exiting.
     servo_down.angle = 0
     servo_mode.angle = 0
     servo_up.angle = 0
     pca.deinit()
+    listener.stop()
