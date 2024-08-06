@@ -27,7 +27,7 @@ MODE_COOL = 2
 # Global variables for managing state
 current_heat_temp = 75
 current_cool_temp = 75
-ambient_temp = 75  # Simulated ambient temperature
+ambient_temp = 75  # Default ambient temperature
 current_mode = MODE_OFF
 last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 lock = threading.Lock()
@@ -80,13 +80,21 @@ def set_temperature(target_temp):
         if temp_difference > 0:  # Increase temperature
             for _ in range(temp_difference):
                 actuate_servo(servo_up, 180, 0)
-                ambient_temp += 1  # Simulate heating effect
         elif temp_difference < 0:  # Decrease temperature
             for _ in range(abs(temp_difference)):
                 actuate_servo(servo_down, 0, 180)
-                ambient_temp -= 1  # Simulate cooling effect
 
         last_action_time = time.time()  # Update the last action time
+
+def read_ambient_temperature():
+    """Read the ambient temperature from a file."""
+    global ambient_temp
+    try:
+        with open("temp.txt", "r") as file:
+            ambient_temp = float(file.read().strip())
+            print(f"Read ambient temperature: {ambient_temp}°F")
+    except Exception as e:
+        print(f"Error reading ambient temperature: {e}")
 
 def log_info():
     """Continuously log the current state to a file."""
@@ -95,6 +103,9 @@ def log_info():
     while True:
         with lock:
             time_since_last_action = time.time() - last_action_time
+
+            # Read the latest ambient temperature from the file
+            read_ambient_temperature()
 
             with open("info.txt", "w") as file:
                 file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
