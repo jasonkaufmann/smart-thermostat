@@ -7,7 +7,8 @@ app = Flask(__name__)
 
 # Initialize the camera
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": "RGB888"}))
+config = picam2.create_still_configuration(main={"size": (1920, 1080), "format": "RGB888"})
+picam2.configure(config)
 picam2.start()
 
 def gen_frames():
