@@ -98,10 +98,14 @@ def main(stdscr):
             stdscr.clrtoeol()
             stdscr.refresh()
 
-            # Process temperature input
+            # Display the prompt for temperature input
             stdscr.addstr(2, 0, "Enter temperature: ")
-            curses.echo()  # Enable echoing of input characters
-            temp_input = stdscr.getstr(3, 0, 5).decode('utf-8')  # Read up to 5 characters for the temperature input
+            stdscr.clrtoeol()
+            stdscr.refresh()
+
+            # Enable echoing and capture input for temperature
+            curses.echo()
+            temp_input = stdscr.getstr(2, 18, 2).decode('utf-8').strip()  # Allow 2 digits for temperature input
             curses.noecho()  # Disable echoing
 
             # Check if we need to actuate the mode button to activate the screen
