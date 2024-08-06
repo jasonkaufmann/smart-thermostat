@@ -25,7 +25,8 @@ MODE_HEAT = 1
 MODE_COOL = 2
 
 # Global variables for managing state
-current_temp = 75
+current_heat_temp = 75
+current_cool_temp = 75
 current_mode = MODE_OFF
 last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 lock = threading.Lock()
@@ -50,23 +51,17 @@ def change_mode(current_mode):
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    global current_temp, current_mode, last_action_time
+    global current_heat_temp, current_cool_temp, current_mode, last_action_time
 
     with lock:
-        temp_difference = target_temp - current_temp
-
-        # Decide mode based on target temperature
-        if target_temp > current_temp:
-            desired_mode = MODE_HEAT
-        elif target_temp < current_temp:
-            desired_mode = MODE_COOL
+        if current_mode == MODE_HEAT:
+            temp_difference = target_temp - current_heat_temp
+            current_heat_temp = target_temp
+        elif current_mode == MODE_COOL:
+            temp_difference = target_temp - current_cool_temp
+            current_cool_temp = target_temp
         else:
-            return  # No change needed
-
-        # Change mode if necessary
-        if current_mode != desired_mode:
-            while current_mode != desired_mode:
-                current_mode = change_mode(current_mode)
+            return  # No change needed in OFF mode
 
         # Adjust temperature
         if temp_difference > 0:  # Increase temperature
@@ -76,12 +71,11 @@ def set_temperature(target_temp):
             for _ in range(abs(temp_difference)):
                 actuate_servo(servo_down, 0, 180)
 
-        current_temp = target_temp
         last_action_time = time.time()  # Update the last action time
 
 def log_info():
     """Continuously log the current state to a file."""
-    global current_temp, current_mode, last_action_time
+    global current_heat_temp, current_cool_temp, current_mode, last_action_time
 
     while True:
         with lock:
@@ -89,7 +83,8 @@ def log_info():
 
             with open("info.txt", "w") as file:
                 file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
-                file.write(f"Current set temperature: {current_temp}°F\n")
+                file.write(f"Current heat temperature: {current_heat_temp}°F\n")
+                file.write(f"Current cool temperature: {current_cool_temp}°F\n")
                 file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
 
         time.sleep(1)  # Log every second
