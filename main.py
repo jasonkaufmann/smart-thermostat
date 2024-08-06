@@ -27,7 +27,7 @@ MODE_COOL = 2
 # Function to move the servo from its current angle to the specified target angle and back.
 def actuate_servo(servo, start_angle, target_angle):
     servo.angle = target_angle
-    time.sleep(0.5)  # Delay for 0.5 seconds
+    time.sleep(0.3)  # Delay for 0.5 seconds
     servo.angle = start_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
 
