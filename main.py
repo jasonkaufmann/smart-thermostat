@@ -3,7 +3,7 @@ import board
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
-from pynput import keyboard
+import curses
 
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -19,46 +19,49 @@ servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
 servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
 servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
 
-# Function to move the servo to 180 degrees and back to 0 degrees.
-def actuate_servo(servo):
-    servo.angle = 180
+# Function to move the servo from its current angle to the specified target angle and back.
+def actuate_servo(servo, start_angle, target_angle):
+    servo.angle = target_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
-    servo.angle = 0
+    servo.angle = start_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
 
-# Function to handle key press events
-def on_press(key):
-    try:
-        if key == keyboard.Key.up:
-            actuate_servo(servo_up)
-        elif key == keyboard.Key.down:
-            actuate_servo(servo_down)
-        elif key == keyboard.Key.right:
-            actuate_servo(servo_mode)
-    except AttributeError:
-        # Handle special keys if needed
-        pass
+# Main function to handle keyboard input using curses
+def main(stdscr):
+    # Set up the curses environment
+    curses.curs_set(0)  # Hide the cursor
+    stdscr.nodelay(True)  # Make getch() non-blocking
+    stdscr.clear()
 
-# Set all servos to a neutral position at the start
-servo_down.angle = 0
-servo_mode.angle = 0
-servo_up.angle = 0
+    stdscr.addstr(0, 0, "Use the arrow keys to control the servos. Press 'q' to exit.")
+    stdscr.refresh()
 
-print("Use the arrow keys to control the servos. Press 'Ctrl+C' to exit.")
-
-# Start listening to keyboard events
-listener = keyboard.Listener(on_press=on_press)
-listener.start()
-
-try:
-    while True:
-        time.sleep(0.1)  # Keep the program running
-except KeyboardInterrupt:
-    pass
-finally:
-    # Set all servos to a neutral position before exiting.
+    # Set initial positions for servos
     servo_down.angle = 0
     servo_mode.angle = 0
-    servo_up.angle = 0
-    pca.deinit()
-    listener.stop()
+    servo_up.angle = 180  # Start up servo at 180 degrees
+
+    try:
+        while True:
+            key = stdscr.getch()
+
+            if key == curses.KEY_UP:
+                actuate_servo(servo_up, 180, 0)
+            elif key == curses.KEY_DOWN:
+                actuate_servo(servo_down, 0, 180)
+            elif key == curses.KEY_RIGHT:
+                actuate_servo(servo_mode, 0, 180)
+            elif key == ord('q'):  # Quit on 'q' key
+                break
+
+            time.sleep(0.1)  # Add a small delay to reduce CPU usage
+
+    finally:
+        # Set all servos to a neutral position before exiting.
+        servo_down.angle = 0
+        servo_mode.angle = 0
+        servo_up.angle = 180  # Return up servo to its default position
+        pca.deinit()
+
+# Run the main function inside the curses wrapper
+curses.wrapper(main)
