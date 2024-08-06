@@ -27,6 +27,7 @@ MODE_COOL = 2
 # Global variables for managing state
 current_heat_temp = 75
 current_cool_temp = 75
+ambient_temp = 75  # Simulated ambient temperature
 current_mode = MODE_OFF
 last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 lock = threading.Lock()
@@ -38,25 +39,31 @@ def actuate_servo(servo, start_angle, target_angle):
     servo.angle = start_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
 
-def change_mode():
-    """Cycle through the modes: OFF -> HEAT -> COOL -> OFF."""
+def cycle_mode_to_desired(desired_mode):
+    """Cycle through the modes until the desired mode is reached."""
     global current_mode
-    actuate_servo(servo_mode, 0, 180)
-
-    if current_mode == MODE_OFF:
-        current_mode = MODE_HEAT
-    elif current_mode == MODE_HEAT:
-        current_mode = MODE_COOL
-    else:
-        current_mode = MODE_OFF
-
-    print(f"Mode changed to: {['OFF', 'HEAT', 'COOL'][current_mode]}")
+    while current_mode != desired_mode:
+        actuate_servo(servo_mode, 0, 180)
+        if current_mode == MODE_OFF:
+            current_mode = MODE_HEAT
+        elif current_mode == MODE_HEAT:
+            current_mode = MODE_COOL
+        else:
+            current_mode = MODE_OFF
+        print(f"Mode changed to: {['OFF', 'HEAT', 'COOL'][current_mode]}")
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    global current_heat_temp, current_cool_temp, last_action_time
+    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time
 
     with lock:
+        if target_temp > ambient_temp and current_mode != MODE_HEAT:
+            print("Switching to HEAT mode")
+            cycle_mode_to_desired(MODE_HEAT)
+        elif target_temp < ambient_temp and current_mode != MODE_COOL:
+            print("Switching to COOL mode")
+            cycle_mode_to_desired(MODE_COOL)
+
         if current_mode == MODE_HEAT:
             temp_difference = target_temp - current_heat_temp
             current_heat_temp = target_temp
@@ -73,15 +80,17 @@ def set_temperature(target_temp):
         if temp_difference > 0:  # Increase temperature
             for _ in range(temp_difference):
                 actuate_servo(servo_up, 180, 0)
+                ambient_temp += 1  # Simulate heating effect
         elif temp_difference < 0:  # Decrease temperature
             for _ in range(abs(temp_difference)):
                 actuate_servo(servo_down, 0, 180)
+                ambient_temp -= 1  # Simulate cooling effect
 
         last_action_time = time.time()  # Update the last action time
 
 def log_info():
     """Continuously log the current state to a file."""
-    global current_heat_temp, current_cool_temp, current_mode, last_action_time
+    global current_heat_temp, current_cool_temp, ambient_temp, current_mode, last_action_time
 
     while True:
         with lock:
@@ -91,6 +100,7 @@ def log_info():
                 file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
                 file.write(f"Current heat temperature: {current_heat_temp}°F\n")
                 file.write(f"Current cool temperature: {current_cool_temp}°F\n")
+                file.write(f"Ambient temperature: {ambient_temp}°F\n")
                 file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
 
         time.sleep(1)  # Log every second
@@ -109,7 +119,7 @@ def handle_input():
             if time.time() - last_action_time > 45:
                 print("Activating screen...")
                 actuate_servo(servo_mode, 0, 180)
-                change_mode()  # Ensure the mode is set correctly
+                cycle_mode_to_desired(MODE_HEAT if target_temp > ambient_temp else MODE_COOL)
 
             set_temperature(target_temp)
             last_action_time = time.time()  # Update the last action time
