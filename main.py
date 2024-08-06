@@ -4,7 +4,6 @@ import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 import threading
-
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
 
@@ -134,7 +133,6 @@ def log_info():
     while True:
         with lock:
             time_since_last_action = time.time() - last_action_time
-
             # Read the latest ambient temperature from the file
             read_ambient_temperature()
 

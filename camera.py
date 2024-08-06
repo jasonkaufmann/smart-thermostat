@@ -1,34 +1,62 @@
-from flask import Flask, render_template, Response
-from picamera2 import Picamera2, Preview
+import time
+import os
 import cv2
-import io
+from picamera2 import Picamera2
+from paramiko import SSHClient, AutoAddPolicy
+from scp import SCPClient
 
-app = Flask(__name__)
+# Configuration
+remote_host = "10.0.0.213"    # IP address of the target Linux machine
+remote_user = "jason"         # Username on the target machine
+remote_path = "/home/jason/smart-thermostat/"  # Directory on the target machine
+remote_filename = "latest_photo.jpg"  # Filename to use on the remote machine
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_still_configuration(main={"size": (1920, 1080), "format": "RGB888"})
+config = picam2.create_still_configuration(main={"size": (3280, 2464), "format": "RGB888"})  # Max resolution
 picam2.configure(config)
 picam2.start()
 
-def gen_frames():
+# Function to create an SSH client
+def create_ssh_client(server, user, password=None):
+    client = SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(AutoAddPolicy())
+    client.connect(server, username=user, password=password)
+    return client
+
+# Capture and transfer photos
+def capture_and_transfer():
     while True:
+        # Capture photo
+        local_filename = "/tmp/latest_photo.jpg"  # Use a fixed filename
+
+        # Capture the image and save it using OpenCV
         frame = picam2.capture_array()
-        # Encode frame as JPEG
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        cv2.imwrite(local_filename, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
-@app.route('/')
-def index():
-    # Main page for video streaming.
-    return render_template('index.html')
+        # Transfer the photo using SCP
+        ssh_client = None
+        try:
+            ssh_client = create_ssh_client(remote_host, remote_user)
+            with SCPClient(ssh_client.get_transport()) as scp:
+                # Overwrite the image on the remote machine
+                scp.put(local_filename, os.path.join(remote_path, remote_filename))
+            print(f"Transferred {local_filename} to {remote_host}:{remote_path}{remote_filename}")
+        except Exception as e:
+            print(f"Failed to transfer {local_filename}: {e}")
+        finally:
+            if ssh_client is not None:
+                ssh_client.close()
+        
+        # Wait for 5 seconds before capturing the next photo
+        time.sleep(5)
 
-@app.route('/video_feed')
-def video_feed():
-    # Video streaming route.
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+if __name__ == "__main__":
+    try:
+        capture_and_transfer()
+    except KeyboardInterrupt:
+        print("Stopping capture.")
+    finally:
+        picam2.stop()
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
