@@ -27,7 +27,7 @@ MODE_COOL = 2
 # Function to move the servo from its current angle to the specified target angle and back.
 def actuate_servo(servo, start_angle, target_angle):
     servo.angle = target_angle
-    time.sleep(0.3)  # Delay for 0.5 seconds
+    time.sleep(0.3)  # Delay for 0.3 seconds
     servo.angle = start_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
 
@@ -88,15 +88,25 @@ def main(stdscr):
     current_mode = MODE_OFF
     current_temp = 75
     screen_active = False
-    last_action_time = None
+    last_action_time = time.time()
 
     try:
         while True:
+            # Calculate the time since the last action
+            time_since_last_action = time.time() - last_action_time
+            stdscr.addstr(5, 0, f"Time since last action: {time_since_last_action:.1f} seconds")
+            stdscr.clrtoeol()
+            stdscr.refresh()
+
             # Check for input
             key = stdscr.getch()
 
-            # Activate screen on initial mode button press
-            if not screen_active and key == curses.KEY_RIGHT:
+            # Activate screen if necessary
+            if not screen_active and time_since_last_action > 45:
+                stdscr.addstr(1, 0, "Activating screen...")
+                stdscr.clrtoeol()
+                stdscr.refresh()
+                actuate_servo(servo_mode, 0, 180)
                 screen_active = True
                 last_action_time = time.time()
                 stdscr.addstr(0, 0, "Screen activated. Enter the desired temperature and press 'Enter'. Press 'q' to exit.\n")
@@ -111,7 +121,7 @@ def main(stdscr):
                 stdscr.refresh()
 
                 # Check if screen should deactivate
-                if time.time() - last_action_time > 45:
+                if time_since_last_action > 45:
                     screen_active = False
                     stdscr.addstr(0, 0, "Screen deactivated. Press the mode button to reactivate.\n")
                     stdscr.clrtoeol()
