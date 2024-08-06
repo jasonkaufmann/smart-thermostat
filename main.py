@@ -95,7 +95,7 @@ def read_ambient_temperature():
     try:
         with open("temp.txt", "r") as file:
             ambient_temp = float(file.read().strip())
-            print(f"Read ambient temperature: {ambient_temp}°F")
+            #print(f"Read ambient temperature: {ambient_temp}°F")
     except Exception as e:
         print(f"Error reading ambient temperature: {e}")
 
