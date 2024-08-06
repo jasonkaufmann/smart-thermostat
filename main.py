@@ -86,15 +86,46 @@ def set_temperature(target_temp):
 
         last_action_time = time.time()  # Update the last action time
 
+        # Save the settings to the file
+        save_settings()
+
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
     global ambient_temp
     try:
         with open("temp.txt", "r") as file:
             ambient_temp = float(file.read().strip())
-            #print(f"Read ambient temperature: {ambient_temp}°F")
+            print(f"Read ambient temperature: {ambient_temp}°F")
     except Exception as e:
         print(f"Error reading ambient temperature: {e}")
+
+def save_settings():
+    """Save current settings to a file."""
+    global current_heat_temp, current_cool_temp, current_mode
+    try:
+        with open("settings.txt", "w") as file:
+            file.write(f"{current_heat_temp}\n")
+            file.write(f"{current_cool_temp}\n")
+            file.write(f"{current_mode}\n")
+        print("Settings saved.")
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+
+def load_settings():
+    """Load settings from a file."""
+    global current_heat_temp, current_cool_temp, current_mode
+    try:
+        with open("settings.txt", "r") as file:
+            lines = file.readlines()
+            current_heat_temp = int(lines[0].strip())
+            current_cool_temp = int(lines[1].strip())
+            current_mode = int(lines[2].strip())
+        print("Settings loaded.")
+    except Exception as e:
+        print(f"Error loading settings, using default values: {e}")
+        current_heat_temp = 75
+        current_cool_temp = 75
+        current_mode = MODE_OFF
 
 def log_info():
     """Continuously log the current state to a file."""
@@ -140,6 +171,9 @@ def handle_input():
 
 def main():
     try:
+        # Load settings from the file at startup
+        load_settings()
+
         # Start logging and input handling in separate threads
         logging_thread = threading.Thread(target=log_info, daemon=True)
         logging_thread.start()
