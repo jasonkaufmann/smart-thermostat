@@ -38,29 +38,35 @@ def actuate_servo(servo, start_angle, target_angle):
     servo.angle = start_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
 
-def change_mode(current_mode):
+def change_mode():
     """Cycle through the modes: OFF -> HEAT -> COOL -> OFF."""
+    global current_mode
     actuate_servo(servo_mode, 0, 180)
 
     if current_mode == MODE_OFF:
-        return MODE_HEAT
+        current_mode = MODE_HEAT
     elif current_mode == MODE_HEAT:
-        return MODE_COOL
+        current_mode = MODE_COOL
     else:
-        return MODE_OFF
+        current_mode = MODE_OFF
+
+    print(f"Mode changed to: {['OFF', 'HEAT', 'COOL'][current_mode]}")
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    global current_heat_temp, current_cool_temp, current_mode, last_action_time
+    global current_heat_temp, current_cool_temp, last_action_time
 
     with lock:
         if current_mode == MODE_HEAT:
             temp_difference = target_temp - current_heat_temp
             current_heat_temp = target_temp
+            print(f"Adjusting heat temperature to {current_heat_temp}°F")
         elif current_mode == MODE_COOL:
             temp_difference = target_temp - current_cool_temp
             current_cool_temp = target_temp
+            print(f"Adjusting cool temperature to {current_cool_temp}°F")
         else:
+            print("No adjustment needed in OFF mode")
             return  # No change needed in OFF mode
 
         # Adjust temperature
@@ -103,6 +109,7 @@ def handle_input():
             if time.time() - last_action_time > 45:
                 print("Activating screen...")
                 actuate_servo(servo_mode, 0, 180)
+                change_mode()  # Ensure the mode is set correctly
 
             set_temperature(target_temp)
             last_action_time = time.time()  # Update the last action time
