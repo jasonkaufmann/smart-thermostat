@@ -74,7 +74,7 @@ def set_temperature(current_temp, target_temp, current_mode):
 def main(stdscr):
     # Set up the curses environment
     curses.curs_set(0)  # Hide the cursor
-    stdscr.nodelay(True)  # Make getch() non-blocking
+    stdscr.nodelay(False)  # Make getch() blocking for input capture
     stdscr.clear()
 
     stdscr.addstr(0, 0, "Enter the desired temperature and press 'Enter'. Press 'q' to exit.\n")
@@ -105,7 +105,7 @@ def main(stdscr):
 
             # Enable echoing and capture input for temperature
             curses.echo()
-            temp_input = stdscr.getstr(2, 18, 2).decode('utf-8').strip()  # Allow 2 digits for temperature input
+            temp_input = stdscr.getstr(2, 18, 3).decode('utf-8').strip()  # Allow 3 characters for temperature input
             curses.noecho()  # Disable echoing
 
             # Check if we need to actuate the mode button to activate the screen
