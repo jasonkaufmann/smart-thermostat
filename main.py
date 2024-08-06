@@ -74,7 +74,7 @@ def set_temperature(current_temp, target_temp, current_mode):
 def main(stdscr):
     # Set up the curses environment
     curses.curs_set(0)  # Hide the cursor
-    stdscr.nodelay(False)  # Make getch() blocking for input capture
+    stdscr.nodelay(True)  # Make getch() non-blocking
     stdscr.clear()
 
     stdscr.addstr(0, 0, "Enter the desired temperature and press 'Enter'. Press 'q' to exit.\n")
@@ -94,43 +94,47 @@ def main(stdscr):
             # Calculate the time since the last action
             time_since_last_action = time.time() - last_action_time
             stdscr.addstr(5, 0, f"Time since last action: {time_since_last_action:.1f} seconds")
+            stdscr.clrtoeol()
             stdscr.addstr(6, 0, f"Current set temperature: {current_temp}°F")
             stdscr.clrtoeol()
             stdscr.refresh()
 
-            # Display the prompt for temperature input
-            stdscr.addstr(2, 0, "Enter temperature: ")
-            stdscr.clrtoeol()
-            stdscr.refresh()
-
-            # Enable echoing and capture input for temperature
-            curses.echo()
-            temp_input = stdscr.getstr(2, 18, 3).decode('utf-8').strip()  # Allow 3 characters for temperature input
-            curses.noecho()  # Disable echoing
-
-            # Check if we need to actuate the mode button to activate the screen
-            if time_since_last_action > 45:
-                stdscr.addstr(1, 0, "Activating screen...")
-                stdscr.clrtoeol()
-                stdscr.refresh()
-                actuate_servo(servo_mode, 0, 180)
-                last_action_time = time.time()
-
-            try:
-                target_temp = int(temp_input)
-                current_temp = set_temperature(current_temp, target_temp, current_mode)
-                last_action_time = time.time()  # Update the last action time
-            except ValueError:
-                stdscr.addstr(4, 0, "Invalid input. Please enter a valid number.")
-                stdscr.clrtoeol()
-                stdscr.refresh()
-                continue
-
-            stdscr.addstr(2, 0, f"Current temperature: {current_temp}°F, Mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
-            stdscr.clrtoeol()
-            stdscr.refresh()
-
+            # Check for input
             key = stdscr.getch()
+
+            if key != -1:
+                # Process temperature input
+                stdscr.addstr(2, 0, "Enter temperature: ")
+                stdscr.clrtoeol()
+                stdscr.refresh()
+
+                # Enable echoing and capture input for temperature
+                curses.echo()
+                temp_input = stdscr.getstr(2, 18, 3).decode('utf-8').strip()  # Allow 3 characters for temperature input
+                curses.noecho()  # Disable echoing
+
+                # Check if we need to actuate the mode button to activate the screen
+                if time_since_last_action > 45:
+                    stdscr.addstr(1, 0, "Activating screen...")
+                    stdscr.clrtoeol()
+                    stdscr.refresh()
+                    actuate_servo(servo_mode, 0, 180)
+                    last_action_time = time.time()
+
+                try:
+                    target_temp = int(temp_input)
+                    current_temp = set_temperature(current_temp, target_temp, current_mode)
+                    last_action_time = time.time()  # Update the last action time
+                except ValueError:
+                    stdscr.addstr(4, 0, "Invalid input. Please enter a valid number.")
+                    stdscr.clrtoeol()
+                    stdscr.refresh()
+                    continue
+
+                stdscr.addstr(2, 0, f"Current temperature: {current_temp}°F, Mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
+                stdscr.clrtoeol()
+                stdscr.refresh()
+
             if key == ord('q'):  # Quit on 'q' key
                 break
 
