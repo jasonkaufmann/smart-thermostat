@@ -3,7 +3,6 @@ import board
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
-import curses
 
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -70,16 +69,13 @@ def set_temperature(current_temp, target_temp, current_mode):
 
     return target_temp
 
-# Main function to handle input
-def main(stdscr):
-    # Set up the curses environment
-    curses.curs_set(0)  # Hide the cursor
-    stdscr.nodelay(True)  # Make getch() non-blocking
-    stdscr.clear()
+def log_info(current_temp, time_since_last_action, current_mode):
+    with open("info.txt", "w") as file:
+        file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
+        file.write(f"Current set temperature: {current_temp}°F\n")
+        file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
 
-    stdscr.addstr(0, 0, "Enter the desired temperature and press 'Enter'. Press 'q' to exit.\n")
-    stdscr.refresh()
-
+def main():
     # Set initial positions for servos
     servo_down.angle = 0
     servo_mode.angle = 0
@@ -93,52 +89,34 @@ def main(stdscr):
         while True:
             # Calculate the time since the last action
             time_since_last_action = time.time() - last_action_time
-            stdscr.addstr(5, 0, f"Time since last action: {time_since_last_action:.1f} seconds")
-            stdscr.clrtoeol()
-            stdscr.addstr(6, 0, f"Current set temperature: {current_temp}°F")
-            stdscr.clrtoeol()
-            stdscr.refresh()
 
-            # Check for input
-            key = stdscr.getch()
+            # Log information to file
+            log_info(current_temp, time_since_last_action, current_mode)
 
-            if key != -1:
-                # Process temperature input
-                stdscr.addstr(2, 0, "Enter temperature: ")
-                stdscr.clrtoeol()
-                stdscr.refresh()
+            # Get temperature input from user
+            temp_input = input("Enter the desired temperature and press 'Enter': ").strip()
 
-                # Enable echoing and capture input for temperature
-                curses.echo()
-                temp_input = stdscr.getstr(2, 18, 3).decode('utf-8').strip()  # Allow 3 characters for temperature input
-                curses.noecho()  # Disable echoing
+            # Check if we need to actuate the mode button to activate the screen
+            if time_since_last_action > 45:
+                print("Activating screen...")
+                actuate_servo(servo_mode, 0, 180)
+                last_action_time = time.time()
 
-                # Check if we need to actuate the mode button to activate the screen
-                if time_since_last_action > 45:
-                    stdscr.addstr(1, 0, "Activating screen...")
-                    stdscr.clrtoeol()
-                    stdscr.refresh()
-                    actuate_servo(servo_mode, 0, 180)
-                    last_action_time = time.time()
+            try:
+                target_temp = int(temp_input)
+                current_temp = set_temperature(current_temp, target_temp, current_mode)
+                last_action_time = time.time()  # Update the last action time
+            except ValueError:
+                print("Invalid input. Please enter a valid number.")
+                continue
 
-                try:
-                    target_temp = int(temp_input)
-                    current_temp = set_temperature(current_temp, target_temp, current_mode)
-                    last_action_time = time.time()  # Update the last action time
-                except ValueError:
-                    stdscr.addstr(4, 0, "Invalid input. Please enter a valid number.")
-                    stdscr.clrtoeol()
-                    stdscr.refresh()
-                    continue
+            # Log information to file again after setting temperature
+            log_info(current_temp, time_since_last_action, current_mode)
 
-                stdscr.addstr(2, 0, f"Current temperature: {current_temp}°F, Mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
-                stdscr.clrtoeol()
-                stdscr.refresh()
-
-            if key == ord('q'):  # Quit on 'q' key
+            # Allow user to quit or continue
+            cont = input("Press 'q' to quit or any other key to enter a new temperature: ").strip().lower()
+            if cont == 'q':
                 break
-
-            time.sleep(0.1)  # Add a small delay to reduce CPU usage
 
     finally:
         # Set all servos to a neutral position before exiting.
@@ -147,5 +125,6 @@ def main(stdscr):
         servo_up.angle = 180  # Return up servo to its default position
         pca.deinit()
 
-# Run the main function inside the curses wrapper
-curses.wrapper(main)
+# Run the main function
+if __name__ == "__main__":
+    main()
