@@ -93,6 +93,11 @@ def main():
             # Log information to file
             log_info(current_temp, time_since_last_action, current_mode)
 
+            # Display info on the console
+            print(f"Time since last action: {time_since_last_action:.1f} seconds")
+            print(f"Current set temperature: {current_temp}°F")
+            print(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
+
             # Get temperature input from user
             temp_input = input("Enter the desired temperature and press 'Enter': ").strip()
 
@@ -109,9 +114,6 @@ def main():
             except ValueError:
                 print("Invalid input. Please enter a valid number.")
                 continue
-
-            # Log information to file again after setting temperature
-            log_info(current_temp, time_since_last_action, current_mode)
 
             # Allow user to quit or continue
             cont = input("Press 'q' to quit or any other key to enter a new temperature: ").strip().lower()
