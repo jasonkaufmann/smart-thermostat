@@ -87,7 +87,7 @@ def main(stdscr):
 
     current_mode = MODE_OFF
     current_temp = 75
-    last_action_time = time.time()
+    last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 
     try:
         while True:
