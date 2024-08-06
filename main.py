@@ -3,6 +3,7 @@ import board
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
+import threading
 
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -23,18 +24,23 @@ MODE_OFF = 0
 MODE_HEAT = 1
 MODE_COOL = 2
 
-# Function to move the servo from its current angle to the specified target angle and back.
+# Global variables for managing state
+current_temp = 75
+current_mode = MODE_OFF
+last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
+lock = threading.Lock()
+
 def actuate_servo(servo, start_angle, target_angle):
+    """Move the servo from start_angle to target_angle and back."""
     servo.angle = target_angle
     time.sleep(0.3)  # Delay for 0.3 seconds
     servo.angle = start_angle
     time.sleep(0.5)  # Delay for 0.5 seconds
 
-# Function to change the mode
 def change_mode(current_mode):
+    """Cycle through the modes: OFF -> HEAT -> COOL -> OFF."""
     actuate_servo(servo_mode, 0, 180)
 
-    # Cycle through the modes: OFF -> HEAT -> COOL -> OFF
     if current_mode == MODE_OFF:
         return MODE_HEAT
     elif current_mode == MODE_HEAT:
@@ -42,84 +48,83 @@ def change_mode(current_mode):
     else:
         return MODE_OFF
 
-# Function to set the temperature
-def set_temperature(current_temp, target_temp, current_mode):
-    temp_difference = target_temp - current_temp
+def set_temperature(target_temp):
+    """Set the temperature to the target_temp."""
+    global current_temp, current_mode, last_action_time
 
-    # Decide mode based on target temperature
-    if target_temp > current_temp:
-        desired_mode = MODE_HEAT
-    elif target_temp < current_temp:
-        desired_mode = MODE_COOL
-    else:
-        return current_temp  # No change needed
+    with lock:
+        temp_difference = target_temp - current_temp
 
-    # Change mode if necessary
-    if current_mode != desired_mode:
-        while current_mode != desired_mode:
-            current_mode = change_mode(current_mode)
+        # Decide mode based on target temperature
+        if target_temp > current_temp:
+            desired_mode = MODE_HEAT
+        elif target_temp < current_temp:
+            desired_mode = MODE_COOL
+        else:
+            return  # No change needed
 
-    # Adjust temperature
-    if temp_difference > 0:  # Increase temperature
-        for _ in range(temp_difference):
-            actuate_servo(servo_up, 180, 0)
-    elif temp_difference < 0:  # Decrease temperature
-        for _ in range(abs(temp_difference)):
-            actuate_servo(servo_down, 0, 180)
+        # Change mode if necessary
+        if current_mode != desired_mode:
+            while current_mode != desired_mode:
+                current_mode = change_mode(current_mode)
 
-    return target_temp
+        # Adjust temperature
+        if temp_difference > 0:  # Increase temperature
+            for _ in range(temp_difference):
+                actuate_servo(servo_up, 180, 0)
+        elif temp_difference < 0:  # Decrease temperature
+            for _ in range(abs(temp_difference)):
+                actuate_servo(servo_down, 0, 180)
 
-def log_info(current_temp, time_since_last_action, current_mode):
-    with open("info.txt", "w") as file:
-        file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
-        file.write(f"Current set temperature: {current_temp}°F\n")
-        file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
+        current_temp = target_temp
+        last_action_time = time.time()  # Update the last action time
 
-def main():
-    # Set initial positions for servos
-    servo_down.angle = 0
-    servo_mode.angle = 0
-    servo_up.angle = 180  # Start up servo at 180 degrees
+def log_info():
+    """Continuously log the current state to a file."""
+    global current_temp, current_mode, last_action_time
 
-    current_mode = MODE_OFF
-    current_temp = 75
-    last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
+    while True:
+        with lock:
+            time_since_last_action = time.time() - last_action_time
 
-    try:
-        while True:
-            # Calculate the time since the last action
-            time_since_last_action = time.time() - last_action_time   # Assume start with time since last press > 45 seconds
-            print(time_since_last_action)
-            # Log information to file
-            log_info(current_temp, time_since_last_action, current_mode)
+            with open("info.txt", "w") as file:
+                file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
+                file.write(f"Current set temperature: {current_temp}°F\n")
+                file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
 
-            # Display info on the console
-            #print(f"Time since last action: {time_since_last_action:.1f} seconds")
-            #print(f"Current set temperature: {current_temp}°F")
-            #print(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}")
+        time.sleep(1)  # Log every second
 
-            # Get temperature input from user
-            temp_input = input("Enter the desired temperature and press 'Enter': ").strip()
+def handle_input():
+    """Handle user input for setting the temperature."""
+    global last_action_time
 
-            # Check if we need to actuate the mode button to activate the screen
-            if time_since_last_action > 45:
+    while True:
+        temp_input = input("Enter the desired temperature and press 'Enter': ").strip()
+
+        try:
+            target_temp = int(temp_input)
+
+            # Actuate mode button if more than 45 seconds have passed
+            if time.time() - last_action_time > 45:
                 print("Activating screen...")
                 actuate_servo(servo_mode, 0, 180)
-                last_action_time = time.time()
 
-            try:
-                target_temp = int(temp_input)
-                current_temp = set_temperature(current_temp, target_temp, current_mode)
-                last_action_time = time.time()  # Update the last action time
-            except ValueError:
-                print("Invalid input. Please enter a valid number.")
-                continue
+            set_temperature(target_temp)
+            last_action_time = time.time()  # Update the last action time
 
-            # Allow user to quit or continue
-            cont = input("Press 'q' to quit or any other key to enter a new temperature: ").strip().lower()
-            if cont == 'q':
-                break
-            time.sleep(0.5)  # Delay for 0.5 seconds
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
+
+def main():
+    try:
+        # Start logging and input handling in separate threads
+        logging_thread = threading.Thread(target=log_info, daemon=True)
+        logging_thread.start()
+
+        input_thread = threading.Thread(target=handle_input, daemon=True)
+        input_thread.start()
+
+        input_thread.join()  # Wait for the input thread to finish (which it won't until quit)
 
     finally:
         # Set all servos to a neutral position before exiting.
