@@ -34,6 +34,7 @@ manual_override = False  # Manual override flag
 last_action_time = time.time() - 100  # Start with time since last press > 45 seconds
 screen_active = False  # Track whether the screen is active
 lock = threading.Lock()
+target_temp = None
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Smart Thermostat Control")
@@ -119,13 +120,21 @@ def activate_screen():
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
-    global ambient_temp
+    global ambient_temp, target_temp
     try:
         with open("temp.txt", "r") as file:
-            ambient_temp = float(file.read().strip())
+            ambient_temp_new = float(file.read().strip())
             #print(f"Read ambient temperature: {ambient_temp}°F")
     except Exception as e:
         print(f"Error reading ambient temperature: {e}")
+
+    # Update the ambient temperature
+    with lock:
+        if ambient_temp_new != ambient_temp:
+            print(f"Ambient temperature updated to: {ambient_temp_new}°F")
+            if target_temp is not None:
+                set_temperature(target_temp)  # Adjust temperature based on new ambient
+        ambient_temp = ambient_temp_new
 
 def save_settings():
     """Save current settings to a file."""
@@ -177,7 +186,7 @@ def log_info():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global current_mode, manual_override, last_action_time
+    global current_mode, manual_override, last_action_time, target_temp
 
     if request.method == "POST":
         # Handle manual override request
