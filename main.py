@@ -220,6 +220,7 @@ def index():
             else:
                 actuate_servo(servo_mode, 0, 180)
                 print("Light button actuated")
+                last_action_time = time.time()
             return redirect("/")
 
     # Calculate the time since the last action
