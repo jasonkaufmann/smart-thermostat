@@ -81,15 +81,16 @@ def set_temperature(target_temp):
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
     with lock:
-        # Activate the screen if time since last action is > 45 seconds
-        if time.time() - last_action_time > 45:
-            activate_screen()
-
+       
         # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
+            if time.time() - last_action_time > 45:
+                activate_screen()
             print("Switching to HEAT mode")
             cycle_mode_to_desired(MODE_HEAT)
         elif target_temp < ambient_temp and current_mode != MODE_COOL:
+            if time.time() - last_action_time > 45:
+                activate_screen()
             print("Switching to COOL mode")
             cycle_mode_to_desired(MODE_COOL)
 

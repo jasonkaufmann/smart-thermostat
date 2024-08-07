@@ -62,18 +62,20 @@ def transfer_number(number):
         # Use SCP to transfer the number to the remote server
         command = "scp -o StrictHostKeyChecking=no temp_number.txt 10.0.0.54:/home/jason/smart-thermostat/temp.txt"
         subprocess.run(command, shell=True)
-        print(f"Transferred number {number} to remote server.")
+        print(f"Transferred number {number} to remote server. Count: {transfer_count}")
 
         # Remove the temporary file
         os.remove('temp_number.txt')
     else:
         print(f"Number {number} is not valid.")
 
+transfer_count = 0  # Initialize transfer counter
 # Main loop to run every 30 seconds
 while True:
     detected_number = process_image()
     if detected_number.isdigit():
         transfer_number(detected_number)
+        transfer_count += 1
     else:
         print("No valid number detected.")
     
