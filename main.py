@@ -6,6 +6,7 @@ from adafruit_motor import servo
 import threading
 from flask import Flask, render_template, request, redirect
 import argparse
+import jsonify
 
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -25,7 +26,6 @@ servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
 MODE_OFF = 0
 MODE_HEAT = 1
 MODE_COOL = 2
-MODE_MANUAL = 3  # New manual mode constant
 
 # Global variables for managing state
 current_heat_temp = 75
@@ -64,7 +64,7 @@ def cycle_mode_to_desired(desired_mode):
         elif current_mode == MODE_HEAT:
             current_mode = MODE_COOL
         elif current_mode == MODE_COOL:
-            current_mode = MODE_MANUAL  # Add manual mode in the cycle
+            current_mode = MODE_OFF  # Add manual mode in the cycle
         else:
             current_mode = MODE_OFF
         print(f"Mode changed to: {['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]}")
@@ -212,8 +212,11 @@ def index():
 
         # Handle light button click
         if "light" in request.form:
-            actuate_servo(servo_mode, 0, 180)
-            print("Light button actuated")
+            if time.time() - last_action_time < 45:
+                print("Cannot actuate light button within 45 seconds of last action. Light should be on.")
+            else:
+                actuate_servo(servo_mode, 0, 180)
+                print("Light button actuated")
             return redirect("/")
 
     # Calculate the time since the last action
@@ -232,6 +235,12 @@ def index():
         manual_override=manual_override,
         time_since_last_action=time_since_last_action
     )
+@app.route("/time_since_last_action", methods=["GET"])
+def get_time_since_last_action():
+    global last_action_time
+    # Calculate the time since the last action
+    time_since_last_action = time.time() - last_action_time
+    return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
 
 def main():
     try:
