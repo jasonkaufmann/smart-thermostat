@@ -34,7 +34,7 @@ manual_override = False  # Manual override flag
 last_action_time = time.time() - 100  # Start with time since last press > 45 seconds
 screen_active = False  # Track whether the screen is active
 lock = threading.Lock()
-target_temp = None
+current_target_temp = None
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Smart Thermostat Control")
@@ -120,7 +120,7 @@ def activate_screen():
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
-    global ambient_temp, target_temp
+    global ambient_temp, current_target_temp
     try:
         with open("temp.txt", "r") as file:
             ambient_temp_new = float(file.read().strip())
@@ -132,8 +132,8 @@ def read_ambient_temperature():
     with lock:
         if ambient_temp_new != ambient_temp:
             print(f"Ambient temperature updated to: {ambient_temp_new}°F")
-            if target_temp is not None:
-                set_temperature(target_temp)  # Adjust temperature based on new ambient
+            if current_target_temp is not None:
+                set_temperature(current_target_temp)  # Adjust temperature based on new ambient
         ambient_temp = ambient_temp_new
 
 def save_settings():
@@ -186,7 +186,7 @@ def log_info():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global current_mode, manual_override, last_action_time, target_temp
+    global current_mode, manual_override, last_action_time, current_target_temp
 
     if request.method == "POST":
         # Handle manual override request
@@ -199,6 +199,7 @@ def index():
         if "set_temperature" in request.form:
             target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
+            current_target_temp = target_temp
             return redirect("/")
 
         # Handle mode set request only if manual override is active
@@ -245,12 +246,12 @@ def get_time_since_last_action():
     time_since_last_action = time.time() - last_action_time
     return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
 
-# @app.route("/ambient_temperature", methods=["GET"])
-# def get_ambient_temperature():
-#     global ambient_temp
-#     # Ensure the latest ambient temperature is read
-#     read_ambient_temperature()
-#     return jsonify({"ambient_temperature": ambient_temp})
+@app.route("/ambient_temperature", methods=["GET"])
+def get_ambient_temperature():
+    global ambient_temp
+    # Ensure the latest ambient temperature is read
+    read_ambient_temperature()
+    return jsonify({"ambient_temperature": ambient_temp})
 
 def main():
     try:

@@ -14,18 +14,18 @@
                 });
         }
 
-        // // Function to update the ambient temperature
-        // function updateAmbientTemperature() {
-        //     fetch("/ambient_temperature")
-        //         .then(response => response.json())
-        //         .then(data => {
-        //             document.getElementById("ambient-temperature").innerText = data.ambient_temperature.toFixed(1) + "°F";
-        //         });
-        // }
+        // Function to update the ambient temperature
+        function updateAmbientTemperature() {
+            fetch("/ambient_temperature")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("ambient-temperature").innerText = data.ambient_temperature.toFixed(1) + "°F";
+                });
+        }
 
         // Update the time and temperature every second
         setInterval(updateTimeSinceLastAction, 1000);
-        //setInterval(updateAmbientTemperature, 1000);
+        setInterval(updateAmbientTemperature, 1000);
     </script>
 </head>
 <body>
