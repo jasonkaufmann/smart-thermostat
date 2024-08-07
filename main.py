@@ -113,8 +113,9 @@ def set_temperature(target_temp):
 
         last_action_time = time.time()  # Update the last action time
 
-        # Save the settings to the file
-        save_settings()
+        if not args.simulate:
+            # Save the settings to the file
+            save_settings()
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
