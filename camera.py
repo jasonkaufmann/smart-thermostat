@@ -27,6 +27,8 @@ def create_ssh_client(server, user, password=None):
 
 # Capture and transfer photos
 def capture_and_transfer():
+    transfer_count = 0  # Initialize transfer counter
+
     while True:
         # Capture photo
         local_filename = "/tmp/latest_photo.jpg"  # Use a fixed filename
@@ -42,15 +44,17 @@ def capture_and_transfer():
             with SCPClient(ssh_client.get_transport()) as scp:
                 # Overwrite the image on the remote machine
                 scp.put(local_filename, os.path.join(remote_path, remote_filename))
+            transfer_count += 1  # Increment transfer counter
             print(f"Transferred {local_filename} to {remote_host}:{remote_path}{remote_filename}")
+            print(f"Transfer count: {transfer_count}")  # Print transfer count
         except Exception as e:
             print(f"Failed to transfer {local_filename}: {e}")
         finally:
             if ssh_client is not None:
                 ssh_client.close()
         
-        # Wait for 30 seconds before capturing the next photo
-        time.sleep(30)
+        # Wait for 15 seconds before capturing the next photo
+        time.sleep(15)
 
 if __name__ == "__main__":
     try:
@@ -59,4 +63,3 @@ if __name__ == "__main__":
         print("Stopping capture.")
     finally:
         picam2.stop()
-

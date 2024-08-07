@@ -78,4 +78,4 @@ while True:
         print("No valid number detected.")
     
     # Wait for 30 seconds
-    time.sleep(60)
+    time.sleep(12)
