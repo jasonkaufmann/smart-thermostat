@@ -121,10 +121,7 @@ def activate_screen():
     global screen_active, current_mode
     print("Activating screen...")
     screen_active = True
-    if current_mode == MODE_OFF:
-        # Start with HEAT mode for interaction purposes
-        cycle_mode_to_desired(MODE_HEAT)
-        print("Screen activated and set to HEAT mode")
+    actuate_servo(servo_mode, 0, 180)
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
