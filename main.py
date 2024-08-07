@@ -73,13 +73,8 @@ def set_temperature(target_temp):
 
     with lock:
         # Activate the screen if time since last action is > 45 seconds
-        if not screen_active and time.time() - last_action_time > 45:
+        if time.time() - last_action_time > 45:
             activate_screen()
-
-        # Allow temperature changes only if the screen is active
-        if not screen_active:
-            print("Screen not active. Cannot change settings.")
-            return
 
         # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
@@ -119,8 +114,8 @@ def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
     global screen_active, current_mode
     print("Activating screen...")
-    screen_active = True
     actuate_servo(servo_mode, 0, 180)
+    last_action_time = time.time()  # Update the last action time
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
