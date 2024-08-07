@@ -14,8 +14,18 @@
                 });
         }
 
-        // Update the time every second
+        // Function to update the ambient temperature
+        function updateAmbientTemperature() {
+            fetch("/ambient_temperature")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("ambient-temperature").innerText = data.ambient_temperature.toFixed(1) + "°F";
+                });
+        }
+
+        // Update the time and temperature every second
         setInterval(updateTimeSinceLastAction, 1000);
+        setInterval(updateAmbientTemperature, 1000);
     </script>
 </head>
 <body>
@@ -44,7 +54,7 @@
     </form>
     <p>Current Heat Temperature: {{ current_heat_temp }}°F</p>
     <p>Current Cool Temperature: {{ current_cool_temp }}°F</p>
-    <p>Ambient Temperature: {{ ambient_temp }}°F</p>
+    <p>Ambient Temperature: <span id="ambient-temperature">{{ ambient_temp | round(1) }}°F</span></p>
     <p>Current Mode: {{ mode_options[current_mode] }}</p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
     <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
