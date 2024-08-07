@@ -34,6 +34,7 @@ ambient_temp = 75  # Default ambient temperature
 current_mode = MODE_OFF
 manual_override = False  # Manual override flag
 last_action_time = time.time() - 100  # Start with time since last press > 45 seconds
+screen_active = False  # Track whether the screen is active
 lock = threading.Lock()
 
 # Parse command-line arguments
@@ -70,12 +71,17 @@ def cycle_mode_to_desired(desired_mode):
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time
+    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
     with lock:
         # Activate the screen if time since last action is > 45 seconds
-        if time.time() - last_action_time > 45:
+        if not screen_active and time.time() - last_action_time > 45:
             activate_screen()
+
+        # Allow temperature changes only if the screen is active
+        if not screen_active:
+            print("Screen not active. Cannot change settings.")
+            return
 
         # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
@@ -111,13 +117,14 @@ def set_temperature(target_temp):
         save_settings()
 
 def activate_screen():
-    """Activate the screen by cycling to the appropriate mode."""
-    global current_mode
+    """Activate the screen and set mode to HEAT or COOL."""
+    global screen_active, current_mode
     print("Activating screen...")
+    screen_active = True
     if current_mode == MODE_OFF:
-        cycle_mode_to_desired(MODE_HEAT)  # Example: starting with HEAT mode
-        cycle_mode_to_desired(MODE_COOL)  # Example: switching to COOL mode
-        print("Screen activated")
+        # Start with HEAT mode for interaction purposes
+        cycle_mode_to_desired(MODE_HEAT)
+        print("Screen activated and set to HEAT mode")
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
@@ -227,14 +234,6 @@ def index():
         manual_override=manual_override,
         time_since_last_action=time_since_last_action
     )
-
-@app.route("/time_since_last_action", methods=["GET"])
-def get_time_since_last_action():
-    global last_action_time
-    # Calculate the time since the last action
-    time_since_last_action = time.time() - last_action_time
-    return {"time_since_last_action": round(time_since_last_action, 1)}
-
 
 def main():
     try:
