@@ -167,11 +167,13 @@ def index():
         if "manual_override" in request.form:
             manual_override = not manual_override
             print(f"Manual override {'enabled' if manual_override else 'disabled'}")
+            return redirect("/")
 
         # Handle temperature set request
         if "temperature" in request.form:
             target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
+            return redirect("/")
 
         # Handle mode set request
         if "mode" in request.form:
@@ -182,13 +184,13 @@ def index():
                 cycle_mode_to_desired(MODE_COOL)
             else:
                 cycle_mode_to_desired(MODE_OFF)
+            return redirect("/")
 
         # Handle light button click
         if "light" in request.form:
             actuate_servo(servo_mode, 0, 180)
             print("Light button actuated")
-
-        return redirect("/")
+            return redirect("/")
 
     # Read the latest ambient temperature from the file
     read_ambient_temperature()
@@ -202,6 +204,7 @@ def index():
         mode_options=["OFF", "HEAT", "COOL"],
         manual_override=manual_override
     )
+
 
 def main():
     try:
