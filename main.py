@@ -6,6 +6,14 @@ from adafruit_motor import servo
 import threading
 from flask import Flask, render_template, request, redirect, jsonify
 import argparse
+import logging
+
+
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
 
@@ -188,11 +196,15 @@ def log_info():
 def index():
     global current_mode, manual_override, last_action_time, current_target_temp
 
+    logging.info("Received %s request to /", request.method)
+
     if request.method == "POST":
+        logging.debug("Form data received: %s", request.form)
+
         # Handle manual override request
         if "manual_override" in request.form:
             manual_override = not manual_override
-            print(f"Manual override {'enabled' if manual_override else 'disabled'}")
+            logging.info("Manual override %s", "enabled" if manual_override else "disabled")
             return redirect("/")
 
         # Handle temperature set request
@@ -200,6 +212,7 @@ def index():
             target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
             current_target_temp = target_temp
+            logging.info("Set temperature to %d°F", target_temp)
             return redirect("/")
 
         # Handle mode set request only if manual override is active
@@ -207,24 +220,28 @@ def index():
             selected_mode = request.form.get("mode")
             if selected_mode == "heat":
                 cycle_mode_to_desired(MODE_HEAT)
+                logging.info("Switched mode to HEAT")
             elif selected_mode == "cool":
                 cycle_mode_to_desired(MODE_COOL)
+                logging.info("Switched mode to COOL")
             else:
                 cycle_mode_to_desired(MODE_OFF)
+                logging.info("Switched mode to OFF")
             return redirect("/")
 
         # Handle light button click
         if "light" in request.form:
             if time.time() - last_action_time < 45:
-                print("Cannot actuate light button within 45 seconds of last action. Light should be on.")
+                logging.warning("Attempted to actuate light button within 45 seconds of last action")
             else:
                 actuate_servo(servo_mode, 0, 180)
-                print("Light button actuated")
+                logging.info("Light button actuated")
                 last_action_time = time.time()
             return redirect("/")
 
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
+    logging.debug("Time since last action: %.1f seconds", time_since_last_action)
 
     # Read the latest ambient temperature from the file
     read_ambient_temperature()

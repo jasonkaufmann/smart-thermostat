@@ -41,8 +41,10 @@ def process_image():
     texts = response.text_annotations
     google_text = ''.join([re.sub(r'\D', '', text.description) for text in texts])
 
-    # Grab the first two digits
-    if len(google_text) >= 2:
+    # Keep only the last two digits if four or more are detected
+    if len(google_text) >= 4:
+        detected_number = google_text[-2:]
+    elif len(google_text) >= 2:
         detected_number = google_text[:2]
     else:
         detected_number = ""
