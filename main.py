@@ -8,22 +8,23 @@ from flask import Flask, render_template, request, redirect, jsonify
 import argparse
 import logging
 
-
-
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 # Create the I2C bus interface.
+logging.debug("Initializing I2C bus interface")
 i2c = busio.I2C(board.SCL, board.SDA)
 
 # Create a PCA9685 instance.
+logging.debug("Creating PCA9685 instance")
 pca = PCA9685(i2c)
 
 # Set the PWM frequency to 50Hz, suitable for servos.
+logging.debug("Setting PCA9685 frequency to 50Hz")
 pca.frequency = 50
 
 # Create servo objects for channels.
+logging.debug("Creating servo objects for channels")
 servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
 servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
 servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
@@ -53,8 +54,9 @@ app = Flask(__name__)
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
+    logging.info("Actuating servo from angle %d to %d", start_angle, target_angle)
     if args.simulate:
-        print(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
+        logging.debug(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
     else:
         servo.angle = target_angle
         time.sleep(0.3)  # Delay for 0.3 seconds
@@ -63,6 +65,7 @@ def actuate_servo(servo, start_angle, target_angle):
 
 def cycle_mode_to_desired(desired_mode):
     """Cycle through the modes until the desired mode is reached."""
+    logging.info("Cycling mode to desired mode: %s", ['OFF', 'HEAT', 'COOL'][desired_mode])
     global current_mode
     while current_mode != desired_mode:
         actuate_servo(servo_mode, 0, 180)
@@ -74,44 +77,46 @@ def cycle_mode_to_desired(desired_mode):
             current_mode = MODE_OFF  # Add manual mode in the cycle
         else:
             current_mode = MODE_OFF
-        print(f"Mode changed to: {['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]}")
+        logging.debug("Mode changed to: %s", ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode])
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
+    logging.info("Setting temperature to %d", target_temp)
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
     with lock:
-       
         # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
             if time.time() - last_action_time > 45:
                 activate_screen()
-            print("Switching to HEAT mode")
+            logging.info("Switching to HEAT mode")
             cycle_mode_to_desired(MODE_HEAT)
         elif target_temp < ambient_temp and current_mode != MODE_COOL:
             if time.time() - last_action_time > 45:
                 activate_screen()
-            print("Switching to COOL mode")
+            logging.info("Switching to COOL mode")
             cycle_mode_to_desired(MODE_COOL)
 
         if current_mode == MODE_HEAT:
             temp_difference = target_temp - current_heat_temp
             current_heat_temp = target_temp
-            print(f"Adjusting heat temperature to {current_heat_temp}°F")
+            logging.info("Adjusting heat temperature to %d°F", current_heat_temp)
         elif current_mode == MODE_COOL:
             temp_difference = target_temp - current_cool_temp
             current_cool_temp = target_temp
-            print(f"Adjusting cool temperature to {current_cool_temp}°F")
+            logging.info("Adjusting cool temperature to %d°F", current_cool_temp)
         else:
-            print("No adjustment needed in OFF mode")
+            logging.info("No adjustment needed in OFF mode")
             return  # No change needed in OFF mode
 
         # Adjust temperature
         if temp_difference > 0:  # Increase temperature
+            logging.info("Increasing temperature by %d degrees", temp_difference)
             for _ in range(temp_difference):
                 actuate_servo(servo_up, 180, 0)
             last_action_time = time.time()  # Update the last action time
         elif temp_difference < 0:  # Decrease temperature
+            logging.info("Decreasing temperature by %d degrees", abs(temp_difference))
             for _ in range(abs(temp_difference)):
                 actuate_servo(servo_down, 0, 180)
             last_action_time = time.time()  # Update the last action time
@@ -122,43 +127,45 @@ def set_temperature(target_temp):
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
+    logging.info("Activating screen...")
     global screen_active, last_action_time
-    print("Activating screen...")
     actuate_servo(servo_mode, 0, 180)
     last_action_time = time.time()  # Update the last action time
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
+    logging.info("Reading ambient temperature")
     global ambient_temp, current_target_temp
     ambient_temp_new = None
     try:
         with open("temp.txt", "r") as file:
             ambient_temp_new = float(file.read().strip())
-            #print(f"Read ambient temperature: {ambient_temp}°F")
     except Exception as e:
-        print(f"Error reading ambient temperature: {e}")
+        logging.error("Error reading ambient temperature: %s", e)
 
     if ambient_temp_new is not None:
         if ambient_temp_new != ambient_temp:
             ambient_temp = ambient_temp_new
-            print(f"Ambient temperature updated to: {ambient_temp_new}°F")
+            logging.info("Ambient temperature updated to: %.1f°F", ambient_temp_new)
             if current_target_temp is not None:
                 set_temperature(current_target_temp)  # Adjust temperature based on new ambient
-       
+
 def save_settings():
     """Save current settings to a file."""
+    logging.info("Saving settings to file")
     global current_heat_temp, current_cool_temp, current_mode
     try:
         with open("settings.txt", "w") as file:
             file.write(f"{current_heat_temp}\n")
             file.write(f"{current_cool_temp}\n")
             file.write(f"{current_mode}\n")
-        print("Settings saved.")
+        logging.info("Settings saved.")
     except Exception as e:
-        print(f"Error saving settings: {e}")
+        logging.error("Error saving settings: %s", e)
 
 def load_settings():
     """Load settings from a file."""
+    logging.info("Loading settings from file")
     global current_heat_temp, current_cool_temp, current_mode
     try:
         with open("settings.txt", "r") as file:
@@ -166,15 +173,16 @@ def load_settings():
             current_heat_temp = int(lines[0].strip())
             current_cool_temp = int(lines[1].strip())
             current_mode = int(lines[2].strip())
-        print("Settings loaded.")
+        logging.info("Settings loaded.")
     except Exception as e:
-        print(f"Error loading settings, using default values: {e}")
+        logging.error("Error loading settings, using default values: %s", e)
         current_heat_temp = 75
         current_cool_temp = 75
         current_mode = MODE_OFF
 
 def log_info():
     """Continuously log the current state to a file."""
+    logging.info("Starting log info thread")
     global current_heat_temp, current_cool_temp, ambient_temp, current_mode, last_action_time
 
     while True:
@@ -210,6 +218,7 @@ def index():
 
         # Handle temperature set request
         if "set_temperature" in request.form:
+            logging.info("Received temperature set request")
             target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
             current_target_temp = target_temp
@@ -263,29 +272,35 @@ def get_time_since_last_action():
     global last_action_time
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
+    logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
     return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
 
 @app.route("/ambient_temperature", methods=["GET"])
 def get_ambient_temperature():
     global ambient_temp
     # Ensure the latest ambient temperature is read
+    logging.debug("Ambient temperature requested")
     read_ambient_temperature()
     return jsonify({"ambient_temperature": ambient_temp})
 
 def main():
     try:
         # Load settings from the file at startup
+        logging.info("Starting main function")
         load_settings()
 
         # Start logging in a separate thread
+        logging.info("Starting logging thread")
         logging_thread = threading.Thread(target=log_info, daemon=True)
         logging_thread.start()
 
         # Start Flask web server
+        logging.info("Starting Flask web server")
         app.debug = True
         app.run(host="0.0.0.0", port=5000)
 
     finally:
+        logging.info("Exiting application")
         if not args.simulate:
             # Set all servos to a neutral position before exiting.
             servo_down.angle = 0

@@ -6,12 +6,18 @@ import time
 import subprocess
 from google.cloud import vision
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 # Set up environment for Google Cloud
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/jason/spry-dispatcher-431803-j9-a4231b20a967.json'
 
 # Initialize Google Vision client
 client = vision.ImageAnnotatorClient()
+
+# Function to call Google Cloud Vision API
+def call_vision_api(image):
+    response = client.text_detection(image=image)
+    return response.text_annotations
 
 # Function to process the image and extract numbers
 def process_image():
@@ -34,23 +40,32 @@ def process_image():
     # Save the pre-OCR image for review
     cv2.imwrite('pre_ocr_image.jpg', cropped)  # Saves the cropped image
 
-    # Use Google Cloud Vision
+    # Use Google Cloud Vision with a timeout
     content = cv2.imencode('.jpg', cropped)[1].tobytes()
     image = vision.Image(content=content)
-    response = client.text_detection(image=image)
-    texts = response.text_annotations
-    google_text = ''.join([re.sub(r'\D', '', text.description) for text in texts])
+    
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(call_vision_api, image)
+        try:
+            texts = future.result(timeout=2)
+            google_text = ''.join([re.sub(r'\D', '', text.description) for text in texts])
 
-    # Keep only the last two digits if four or more are detected
-    if len(google_text) >= 4:
-        detected_number = google_text[-2:]
-    elif len(google_text) >= 2:
-        detected_number = google_text[:2]
-    else:
-        detected_number = ""
+            print("Detected text by Google Vision:", google_text if texts else "No text found")
 
-    print("Detected numbers by Google Vision:", detected_number if texts else "No text found")
-    return detected_number
+            # Keep only the last two digits if four or more are detected
+            if len(google_text) >= 4:
+                detected_number = google_text[-2:]
+            elif len(google_text) >= 2:
+                detected_number = google_text[:2]
+            else:
+                detected_number = ""
+
+            print("Detected numbers by Google Vision:", detected_number if texts else "No text found")
+            return detected_number
+
+        except TimeoutError:
+            print("Google Vision API call timed out. Skipping this image.")
+            return ""
 
 # Function to transfer the detected number via SCP
 def transfer_number(number):
@@ -70,7 +85,8 @@ def transfer_number(number):
         print(f"Number {number} is not valid.")
 
 transfer_count = 0  # Initialize transfer counter
-# Main loop to run every 30 seconds
+
+# Main loop to run every 12 seconds
 while True:
     detected_number = process_image()
     if detected_number.isdigit():
@@ -79,5 +95,6 @@ while True:
     else:
         print("No valid number detected.")
     
-    # Wait for 30 seconds
+    # Wait for 12 seconds
     time.sleep(12)
+
