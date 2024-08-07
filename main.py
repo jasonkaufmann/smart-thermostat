@@ -237,6 +237,7 @@ def index():
         manual_override=manual_override,
         time_since_last_action=time_since_last_action
     )
+
 @app.route("/time_since_last_action", methods=["GET"])
 def get_time_since_last_action():
     global last_action_time
@@ -262,6 +263,7 @@ def main():
         logging_thread.start()
 
         # Start Flask web server
+        app.debug = True
         app.run(host="0.0.0.0", port=5000)
 
     finally:
