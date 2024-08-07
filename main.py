@@ -245,13 +245,12 @@ def get_time_since_last_action():
     time_since_last_action = time.time() - last_action_time
     return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
 
-@app.route("/ambient_temperature", methods=["GET"])
-def get_ambient_temperature():
-    global ambient_temp
-    # Ensure the latest ambient temperature is read
-    read_ambient_temperature()
-    return jsonify({"ambient_temperature": ambient_temp})
-
+# @app.route("/ambient_temperature", methods=["GET"])
+# def get_ambient_temperature():
+#     global ambient_temp
+#     # Ensure the latest ambient temperature is read
+#     read_ambient_temperature()
+#     return jsonify({"ambient_temperature": ambient_temp})
 
 def main():
     try:
