@@ -23,11 +23,16 @@
         </div>
 
         <button type="submit" name="light">Light</button>
+
+        <!-- Button to toggle manual mode -->
+        <button type="submit" name="manual_override">
+            {{ 'Disable' if manual_override else 'Enable' }} Manual Mode
+        </button>
     </form>
     <p>Current Heat Temperature: {{ current_heat_temp }}°F</p>
     <p>Current Cool Temperature: {{ current_cool_temp }}°F</p>
     <p>Ambient Temperature: {{ ambient_temp }}°F</p>
     <p>Current Mode: {{ mode_options[current_mode] }}</p>
+    <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
 </body>
 </html>
-

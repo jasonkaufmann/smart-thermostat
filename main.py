@@ -24,12 +24,14 @@ servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
 MODE_OFF = 0
 MODE_HEAT = 1
 MODE_COOL = 2
+MODE_MANUAL = 3  # New manual mode constant
 
 # Global variables for managing state
 current_heat_temp = 75
 current_cool_temp = 75
 ambient_temp = 75  # Default ambient temperature
 current_mode = MODE_OFF
+manual_override = False  # Manual override flag
 last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 lock = threading.Lock()
 
@@ -51,15 +53,21 @@ def cycle_mode_to_desired(desired_mode):
             current_mode = MODE_HEAT
         elif current_mode == MODE_HEAT:
             current_mode = MODE_COOL
+        elif current_mode == MODE_COOL:
+            current_mode = MODE_MANUAL  # Add manual mode in the cycle
         else:
             current_mode = MODE_OFF
-        print(f"Mode changed to: {['OFF', 'HEAT', 'COOL'][current_mode]}")
+        print(f"Mode changed to: {['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]}")
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time
+    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, manual_override
 
     with lock:
+        if not manual_override:
+            print("Manual override is not active. Temperature adjustment is disabled.")
+            return
+
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
             print("Switching to HEAT mode")
             cycle_mode_to_desired(MODE_HEAT)
@@ -76,8 +84,8 @@ def set_temperature(target_temp):
             current_cool_temp = target_temp
             print(f"Adjusting cool temperature to {current_cool_temp}°F")
         else:
-            print("No adjustment needed in OFF mode")
-            return  # No change needed in OFF mode
+            print("No adjustment needed in OFF or MANUAL mode")
+            return  # No change needed in OFF or MANUAL mode
 
         # Adjust temperature
         if temp_difference > 0:  # Increase temperature
@@ -145,15 +153,21 @@ def log_info():
                 file.write(f"Current heat temperature: {current_heat_temp}°F\n")
                 file.write(f"Current cool temperature: {current_cool_temp}°F\n")
                 file.write(f"Ambient temperature: {ambient_temp}°F\n")
-                file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
+                file.write(f"Current mode: {['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]}\n")
+                file.write(f"Manual override: {'Active' if manual_override else 'Inactive'}\n")
 
         time.sleep(1)  # Log every second
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global current_mode
+    global current_mode, manual_override
 
     if request.method == "POST":
+        # Handle manual override request
+        if "manual_override" in request.form:
+            manual_override = not manual_override
+            print(f"Manual override {'enabled' if manual_override else 'disabled'}")
+
         # Handle temperature set request
         if "temperature" in request.form:
             target_temp = int(request.form.get("temperature", 75))
@@ -185,7 +199,8 @@ def index():
         current_cool_temp=current_cool_temp,
         ambient_temp=ambient_temp,
         current_mode=current_mode,
-        mode_options=["OFF", "HEAT", "COOL"]
+        mode_options=["OFF", "HEAT", "COOL"],
+        manual_override=manual_override
     )
 
 def main():
@@ -210,4 +225,3 @@ def main():
 # Run the main function
 if __name__ == "__main__":
     main()
-
