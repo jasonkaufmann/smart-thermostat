@@ -110,11 +110,11 @@ def set_temperature(target_temp):
         if temp_difference > 0:  # Increase temperature
             for _ in range(temp_difference):
                 actuate_servo(servo_up, 180, 0)
+            last_action_time = time.time()  # Update the last action time
         elif temp_difference < 0:  # Decrease temperature
             for _ in range(abs(temp_difference)):
                 actuate_servo(servo_down, 0, 180)
-
-        last_action_time = time.time()  # Update the last action time
+            last_action_time = time.time()  # Update the last action time
 
         if not args.simulate:
             # Save the settings to the file
