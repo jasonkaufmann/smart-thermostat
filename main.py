@@ -5,6 +5,7 @@ from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 import threading
 from flask import Flask, render_template, request, redirect
+import argparse
 
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -35,14 +36,22 @@ manual_override = False  # Manual override flag
 last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 lock = threading.Lock()
 
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Smart Thermostat Control")
+parser.add_argument('--simulate', action='store_true', help='Run in simulation mode (no servo actuation)')
+args = parser.parse_args()
+
 app = Flask(__name__)
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
-    servo.angle = target_angle
-    time.sleep(0.3)  # Delay for 0.3 seconds
-    servo.angle = start_angle
-    time.sleep(0.5)  # Delay for 0.5 seconds
+    if args.simulate:
+        print(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
+    else:
+        servo.angle = target_angle
+        time.sleep(0.3)  # Delay for 0.3 seconds
+        servo.angle = start_angle
+        time.sleep(0.5)  # Delay for 0.5 seconds
 
 def cycle_mode_to_desired(desired_mode):
     """Cycle through the modes until the desired mode is reached."""
@@ -218,12 +227,14 @@ def main():
         app.run(host="0.0.0.0", port=5000)
 
     finally:
-        # Set all servos to a neutral position before exiting.
-        servo_down.angle = 0
-        servo_mode.angle = 0
-        servo_up.angle = 180  # Return up servo to its default position
+        if not args.simulate:
+            # Set all servos to a neutral position before exiting.
+            servo_down.angle = 0
+            servo_mode.angle = 0
+            servo_up.angle = 180  # Return up servo to its default position
         pca.deinit()
 
 # Run the main function
 if __name__ == "__main__":
     main()
+
