@@ -13,7 +13,7 @@ remote_filename = "latest_photo.jpg"  # Filename to use on the remote machine
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_still_configuration(main={"size": (1920, 1080), "format": "RGB888"})  # Max resolution
+config = picam2.create_still_configuration(main={"size": (1000, 1000), "format": "RGB888"})  # Max resolution
 picam2.configure(config)
 picam2.start()
 
