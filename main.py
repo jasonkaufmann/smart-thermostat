@@ -4,6 +4,8 @@ import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 import threading
+from flask import Flask, render_template, request, redirect
+
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
 
@@ -30,6 +32,8 @@ ambient_temp = 75  # Default ambient temperature
 current_mode = MODE_OFF
 last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
 lock = threading.Lock()
+
+app = Flask(__name__)
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
@@ -145,41 +149,56 @@ def log_info():
 
         time.sleep(1)  # Log every second
 
-def handle_input():
-    """Handle user input for setting the temperature."""
-    global last_action_time
+@app.route("/", methods=["GET", "POST"])
+def index():
+    global current_mode
 
-    while True:
-        temp_input = input("Enter the desired temperature and press 'Enter': ").strip()
-
-        try:
-            target_temp = int(temp_input)
-
-            # Actuate mode button if more than 45 seconds have passed
-            if time.time() - last_action_time > 45:
-                print("Activating screen...")
-                actuate_servo(servo_mode, 0, 180)
-                cycle_mode_to_desired(MODE_HEAT if target_temp > ambient_temp else MODE_COOL)
-
+    if request.method == "POST":
+        # Handle temperature set request
+        if "temperature" in request.form:
+            target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
-            last_action_time = time.time()  # Update the last action time
 
-        except ValueError:
-            print("Invalid input. Please enter a valid number.")
+        # Handle mode set request
+        if "mode" in request.form:
+            selected_mode = request.form.get("mode")
+            if selected_mode == "heat":
+                cycle_mode_to_desired(MODE_HEAT)
+            elif selected_mode == "cool":
+                cycle_mode_to_desired(MODE_COOL)
+            else:
+                cycle_mode_to_desired(MODE_OFF)
+
+        # Handle light button click
+        if "light" in request.form:
+            actuate_servo(servo_mode, 0, 180)
+            print("Light button actuated")
+
+        return redirect("/")
+
+    # Read the latest ambient temperature from the file
+    read_ambient_temperature()
+
+    return render_template(
+        "index.html",
+        current_heat_temp=current_heat_temp,
+        current_cool_temp=current_cool_temp,
+        ambient_temp=ambient_temp,
+        current_mode=current_mode,
+        mode_options=["OFF", "HEAT", "COOL"]
+    )
 
 def main():
     try:
         # Load settings from the file at startup
         load_settings()
 
-        # Start logging and input handling in separate threads
+        # Start logging in a separate thread
         logging_thread = threading.Thread(target=log_info, daemon=True)
         logging_thread.start()
 
-        input_thread = threading.Thread(target=handle_input, daemon=True)
-        input_thread.start()
-
-        input_thread.join()  # Wait for the input thread to finish (which it won't until quit)
+        # Start Flask web server
+        app.run(host="0.0.0.0", port=5000)
 
     finally:
         # Set all servos to a neutral position before exiting.
@@ -191,3 +210,4 @@ def main():
 # Run the main function
 if __name__ == "__main__":
     main()
+

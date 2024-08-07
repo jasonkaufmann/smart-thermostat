@@ -13,7 +13,7 @@ remote_filename = "latest_photo.jpg"  # Filename to use on the remote machine
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_still_configuration(main={"size": (3280, 2464), "format": "RGB888"})  # Max resolution
+config = picam2.create_still_configuration(main={"size": (1920, 1080), "format": "RGB888"})  # Max resolution
 picam2.configure(config)
 picam2.start()
 
@@ -49,8 +49,8 @@ def capture_and_transfer():
             if ssh_client is not None:
                 ssh_client.close()
         
-        # Wait for 5 seconds before capturing the next photo
-        time.sleep(5)
+        # Wait for 30 seconds before capturing the next photo
+        time.sleep(30)
 
 if __name__ == "__main__":
     try:

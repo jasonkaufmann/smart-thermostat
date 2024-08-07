@@ -3,10 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raspberry Pi Camera Stream</title>
+    <title>Smart Thermostat</title>
 </head>
 <body>
-    <h1>Raspberry Pi Camera Stream</h1>
-    <img src="{{ url_for('video_feed') }}" width="640" height="480">
+    <h1>Smart Thermostat Control</h1>
+    <form method="POST">
+        <label for="temperature">Desired Temperature:</label>
+        <input type="number" id="temperature" name="temperature" value="{{ current_heat_temp }}" min="60" max="90">
+        <button type="submit">Set Temperature</button>
+
+        <div>
+            <label>Mode:</label>
+            {% for mode in mode_options %}
+            <label>
+                <input type="radio" name="mode" value="{{ mode.lower() }}" {% if current_mode == loop.index0 %}checked{% endif %}>
+                {{ mode }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <button type="submit" name="light">Light</button>
+    </form>
+    <p>Current Heat Temperature: {{ current_heat_temp }}°F</p>
+    <p>Current Cool Temperature: {{ current_cool_temp }}°F</p>
+    <p>Ambient Temperature: {{ ambient_temp }}°F</p>
+    <p>Current Mode: {{ mode_options[current_mode] }}</p>
 </body>
 </html>
+
