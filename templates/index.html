@@ -34,5 +34,6 @@
     <p>Ambient Temperature: {{ ambient_temp }}°F</p>
     <p>Current Mode: {{ mode_options[current_mode] }}</p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
+    <p>Time Since Last Action: {{ time_since_last_action | round(1) }} seconds</p>
 </body>
 </html>
