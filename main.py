@@ -33,7 +33,7 @@ current_cool_temp = 75
 ambient_temp = 75  # Default ambient temperature
 current_mode = MODE_OFF
 manual_override = False  # Manual override flag
-last_action_time = time.time() - 46  # Assume start with time since last press > 45 seconds
+last_action_time = time.time() - 100  # Start with time since last press > 45 seconds
 lock = threading.Lock()
 
 # Parse command-line arguments
@@ -106,6 +106,14 @@ def set_temperature(target_temp):
         # Save the settings to the file
         save_settings()
 
+def activate_screen():
+    """Activate the screen by cycling to the appropriate mode."""
+    global current_mode
+    print("Activating screen...")
+    if current_mode == MODE_OFF:
+        cycle_mode_to_desired(MODE_HEAT)  # Example: starting with HEAT mode
+        cycle_mode_to_desired(MODE_COOL)  # Example: switching to COOL mode
+        print("Screen activated")
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
@@ -167,7 +175,7 @@ def log_info():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global current_mode, manual_override
+    global current_mode, manual_override, last_action_time
 
     if request.method == "POST":
         # Handle manual override request
@@ -199,6 +207,9 @@ def index():
             print("Light button actuated")
             return redirect("/")
 
+    # Calculate the time since the last action
+    time_since_last_action = time.time() - last_action_time
+
     # Read the latest ambient temperature from the file
     read_ambient_temperature()
 
@@ -209,15 +220,18 @@ def index():
         ambient_temp=ambient_temp,
         current_mode=current_mode,
         mode_options=["OFF", "HEAT", "COOL"],
-        manual_override=manual_override
+        manual_override=manual_override,
+        time_since_last_action=time_since_last_action
     )
-
-
 
 def main():
     try:
         # Load settings from the file at startup
         load_settings()
+
+        # Activate the screen if time since last action is > 45 seconds
+        if time.time() - last_action_time > 45:
+            activate_screen()
 
         # Start logging in a separate thread
         logging_thread = threading.Thread(target=log_info, daemon=True)
@@ -237,4 +251,3 @@ def main():
 # Run the main function
 if __name__ == "__main__":
     main()
-
