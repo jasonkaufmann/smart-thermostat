@@ -4,10 +4,8 @@ import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 import threading
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, jsonify
 import argparse
-import jsonify
-
 # Create the I2C bus interface.
 i2c = busio.I2C(board.SCL, board.SDA)
 
