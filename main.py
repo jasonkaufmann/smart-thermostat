@@ -61,13 +61,10 @@ def cycle_mode_to_desired(desired_mode):
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, manual_override
+    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time
 
     with lock:
-        if not manual_override:
-            print("Manual override is not active. Temperature adjustment is disabled.")
-            return
-
+        # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
             print("Switching to HEAT mode")
             cycle_mode_to_desired(MODE_HEAT)
@@ -84,8 +81,8 @@ def set_temperature(target_temp):
             current_cool_temp = target_temp
             print(f"Adjusting cool temperature to {current_cool_temp}°F")
         else:
-            print("No adjustment needed in OFF or MANUAL mode")
-            return  # No change needed in OFF or MANUAL mode
+            print("No adjustment needed in OFF mode")
+            return  # No change needed in OFF mode
 
         # Adjust temperature
         if temp_difference > 0:  # Increase temperature
@@ -99,6 +96,7 @@ def set_temperature(target_temp):
 
         # Save the settings to the file
         save_settings()
+
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
@@ -170,13 +168,13 @@ def index():
             return redirect("/")
 
         # Handle temperature set request
-        if "temperature" in request.form:
+        if "set_temperature" in request.form:
             target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
             return redirect("/")
 
-        # Handle mode set request
-        if "mode" in request.form:
+        # Handle mode set request only if manual override is active
+        if "mode" in request.form and manual_override:
             selected_mode = request.form.get("mode")
             if selected_mode == "heat":
                 cycle_mode_to_desired(MODE_HEAT)
@@ -204,6 +202,7 @@ def index():
         mode_options=["OFF", "HEAT", "COOL"],
         manual_override=manual_override
     )
+
 
 
 def main():
