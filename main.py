@@ -73,6 +73,10 @@ def set_temperature(target_temp):
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time
 
     with lock:
+        # Activate the screen if time since last action is > 45 seconds
+        if time.time() - last_action_time > 45:
+            activate_screen()
+
         # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
             print("Switching to HEAT mode")
@@ -224,14 +228,18 @@ def index():
         time_since_last_action=time_since_last_action
     )
 
+@app.route("/time_since_last_action", methods=["GET"])
+def get_time_since_last_action():
+    global last_action_time
+    # Calculate the time since the last action
+    time_since_last_action = time.time() - last_action_time
+    return {"time_since_last_action": round(time_since_last_action, 1)}
+
+
 def main():
     try:
         # Load settings from the file at startup
         load_settings()
-
-        # Activate the screen if time since last action is > 45 seconds
-        if time.time() - last_action_time > 45:
-            activate_screen()
 
         # Start logging in a separate thread
         logging_thread = threading.Thread(target=log_info, daemon=True)

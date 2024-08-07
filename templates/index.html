@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Thermostat</title>
+    <script>
+        // Function to update the time since last action
+        function updateTimeSinceLastAction() {
+            fetch("/time_since_last_action")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("time-since-last-action").innerText = data.time_since_last_action + " seconds";
+                });
+        }
+
+        // Update the time every second
+        setInterval(updateTimeSinceLastAction, 1000);
+    </script>
 </head>
 <body>
     <h1>Smart Thermostat Control</h1>
@@ -34,6 +47,6 @@
     <p>Ambient Temperature: {{ ambient_temp }}°F</p>
     <p>Current Mode: {{ mode_options[current_mode] }}</p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
-    <p>Time Since Last Action: {{ time_since_last_action | round(1) }} seconds</p>
+    <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
 </body>
 </html>
