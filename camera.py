@@ -1,39 +1,34 @@
-import cv2
+from flask import Flask, Response
 from picamera2 import Picamera2
-import time
+import cv2
+
+app = Flask(__name__)
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_video_configuration(main={"size": (1280, 720), "format": "RGB888"})
+config = picam2.create_video_configuration(main={"size": (640, 480), "format": "RGB888"})
 picam2.configure(config)
 picam2.start()
 
-# Capture and stream video
-def stream_video():
-    gst_str = (
-        "appsrc ! videoconvert ! x264enc speed-preset=ultrafast tune=zerolatency "
-        "! rtph264pay config-interval=1 pt=96 ! udpsink host=10.0.0.213 port=5000"
-    )
+def generate_frames():
+    while True:
+        # Capture frame-by-frame
+        frame = picam2.capture_array()
+        # Convert RGB to BGR
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Encode the frame in JPEG format
+        ret, buffer = cv2.imencode('.jpg', frame_bgr)
+        # Convert the frame to bytes
+        frame_bytes = buffer.tobytes()
+        # Yield the frame in MJPEG format
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-    # OpenCV VideoWriter object using GStreamer pipeline
-    out = cv2.VideoWriter(gst_str, cv2.CAP_GSTREAMER, 0, 30, (1280, 720), True)
+@app.route('/video_feed')
+def video_feed():
+    # Return a response with the JPEG frames
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    if not out.isOpened():
-        print("Failed to open video writer")
-        return
-
-    print("Starting video stream...")
-    try:
-        while True:
-            frame = picam2.capture_array()
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            out.write(frame_bgr)
-            time.sleep(0.033)  # Sleep to match 30fps
-    except KeyboardInterrupt:
-        print("Stopping stream...")
-    finally:
-        out.release()
-        picam2.stop()
-
-if __name__ == "__main__":
-    stream_video()
+if __name__ == '__main__':
+    # Start the Flask app on all IP addresses, port 5000
+    app.run(host='0.0.0.0', port=5000)
