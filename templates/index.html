@@ -6,18 +6,17 @@
     <title>Smart Thermostat</title>
     <script>
         let currentTargetTemp;
-        let lastSentTemp;
+        let currentSetTemp;
         let tempChangeTimeout;
 
         // Function to initialize the desired temperature
         function initializeDesiredTemperature() {
-            fetch("/desired_temperature")
+            fetch("/set_temperature")
                 .then(response => response.json())
                 .then(data => {
-                    currentTargetTemp = data.desired_temperature;
-                    lastSentTemp = currentTargetTemp;
-                    document.getElementById("temperature").value = currentTargetTemp;
-                    document.getElementById("desired-temperature").innerText = currentTargetTemp + "°F";
+                    currentSetTemp = data.desired_temperature;
+                    document.getElementById("set-temperature").value = currentSetTemp;
+                    document.getElementById("desired-temperature").innerText = currentSetTemp + "°F";
                 });
         }
 
@@ -50,18 +49,18 @@
 
         // Function to update the desired temperature
         function updateDesiredTemperature() {
-            fetch("/desired_temperature")
+            fetch("/set_temperature")
                 .then(response => response.json())
                 .then(data => {
-                    currentTargetTemp = data.desired_temperature;
-                    document.getElementById("desired-temperature").innerText = currentTargetTemp + "°F";
+                    currentSetTemp = data.desired_temperature;
+                    document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
                 });
         }
 
         // Function to adjust the temperature
         function adjustTemperature(change) {
             currentTargetTemp += change;
-            document.getElementById("temperature").value = currentTargetTemp;
+            document.getElementById("desired-temperature").value = currentTargetTemp;
 
             if (tempChangeTimeout) {
                 clearTimeout(tempChangeTimeout);
@@ -74,17 +73,13 @@
 
         // Function to send the temperature update to the server
         function sendTemperatureUpdate() {
-            if (currentTargetTemp !== lastSentTemp) {
+            if (currentTargetTemp !== currentSetTemp) {
                 fetch("/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"
                     },
                     body: `set_temperature=true&temperature=${currentTargetTemp}`
-                }).then(response => {
-                    if (response.ok) {
-                        lastSentTemp = currentTargetTemp;
-                    }
                 });
             }
         }
@@ -103,7 +98,7 @@
     <h1>Smart Thermostat Control</h1>
     <form method="POST">
         <label for="temperature">Desired Temperature:</label>
-        <input type="number" id="temperature" name="temperature" value="" min="60" max="90" readonly>
+        <input type="number" id="desired_temperature" name="temperature" value="" min="60" max="90" readonly>
         <button type="button" onclick="adjustTemperature(1)">Increase</button>
         <button type="button" onclick="adjustTemperature(-1)">Decrease</button>
 
@@ -126,7 +121,7 @@
     </form>
     <p>Heat Temperature Setting: {{ current_heat_temp }}°F</p>
     <p>Cool Temperature Setting: {{ current_cool_temp }}°F</p>
-    <p>Current Desired Temperature: <span id="desired-temperature"></span></p>
+    <p>Current Set Temperature: <span id="set-temperature"></span></p>
     <p>Ambient Temperature: <span id="ambient-temperature">{{ ambient_temp | round(1) }}°F</span></p>
     <p>Current Mode: <span id="current-mode">{{ mode_options[current_mode] }}</span></p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>

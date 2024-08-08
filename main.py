@@ -292,7 +292,7 @@ def get_current_mode():
     logging.debug("Current mode requested: %s", mode_name)
     return jsonify({"current_mode": mode_name})
 
-@app.route("/desired_temperature", methods=["GET"])
+@app.route("/set_temperature", methods=["GET"])
 def get_desired_temperature():
     global current_desired_temp
     logging.debug("Desired temperature requested: %d°F", current_desired_temp)
