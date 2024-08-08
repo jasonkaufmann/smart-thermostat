@@ -158,6 +158,7 @@ def save_settings():
         with open("settings.txt", "w") as file:
             file.write(f"{current_heat_temp}\n")
             file.write(f"{current_cool_temp}\n")
+            file.write(f"{current_desired_temp}\n")
             file.write(f"{current_mode}\n")
         logging.info("Settings saved.")
     except Exception as e:
@@ -166,19 +167,21 @@ def save_settings():
 def load_settings():
     """Load settings from a file."""
     logging.info("Loading settings from file")
-    global current_heat_temp, current_cool_temp, current_mode
+    global current_heat_temp, current_cool_temp, current_mode, current_desired_temp
     try:
         with open("settings.txt", "r") as file:
             lines = file.readlines()
             current_heat_temp = int(lines[0].strip())
             current_cool_temp = int(lines[1].strip())
-            current_mode = int(lines[2].strip())
+            current_desired_temp = int(lines[2].strip())
+            current_mode = int(lines[3].strip())
         logging.info("Settings loaded.")
     except Exception as e:
         logging.error("Error loading settings, using default values: %s", e)
         current_heat_temp = 75
         current_cool_temp = 75
         current_mode = MODE_OFF
+        current_desired_temp = 70
 
 def log_info():
     """Continuously log the current state to a file."""
