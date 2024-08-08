@@ -43,7 +43,7 @@ manual_override = False  # Manual override flag
 last_action_time = time.time() - 100  # Start with time since last press > 45 seconds
 screen_active = False  # Track whether the screen is active
 lock = threading.Lock()
-current_target_temp = None
+current_desired_temp = None
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Smart Thermostat Control")
@@ -135,7 +135,7 @@ def activate_screen():
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
     logging.info("Reading ambient temperature")
-    global ambient_temp, current_target_temp
+    global ambient_temp, current_desired_temp
     ambient_temp_new = None
     try:
         with open("temp.txt", "r") as file:
@@ -147,8 +147,8 @@ def read_ambient_temperature():
         if ambient_temp_new != ambient_temp:
             ambient_temp = ambient_temp_new
             logging.info("Ambient temperature updated to: %.1f°F", ambient_temp_new)
-            if current_target_temp is not None:
-                set_temperature(current_target_temp)  # Adjust temperature based on new ambient
+            if current_desired_temp is not None:
+                set_temperature(current_desired_temp)  # Adjust temperature based on new ambient
 
 def save_settings():
     """Save current settings to a file."""
@@ -203,7 +203,7 @@ def log_info():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global current_mode, manual_override, last_action_time, current_target_temp
+    global current_mode, manual_override, last_action_time, current_desired_temp
 
     logging.info("Received %s request to /", request.method)
 
@@ -221,7 +221,7 @@ def index():
             logging.info("Received temperature set request")
             target_temp = int(request.form.get("temperature", 75))
             set_temperature(target_temp)
-            current_target_temp = target_temp
+            current_desired_temp = target_temp
             logging.info("Set temperature to %d°F", target_temp)
             return redirect("/")
 
@@ -290,14 +290,12 @@ def get_current_mode():
     logging.debug("Current mode requested: %s", mode_name)
     return jsonify({"current_mode": mode_name})
 
-@app.route("/desired_temperatures", methods=["GET"])
-def get_desired_temperatures():
-    global current_heat_temp, current_cool_temp
-    logging.debug("Desired temperatures requested: Heat %d°F, Cool %d°F", current_heat_temp, current_cool_temp)
-    return jsonify({
-        "desired_heat_temperature": current_heat_temp,
-        "desired_cool_temperature": current_cool_temp
-    })
+@app.route("/desired_temperature", methods=["GET"])
+def get_desired_temperature():
+    global current_desired_temp
+    logging.debug("Desired temperature requested: %d°F", current_desired_temp)
+    return jsonify({"desired_temperature": current_desired_temp})
+
 
 def main():
     try:
