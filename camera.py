@@ -1,6 +1,7 @@
-from flask import Flask, Response
+from flask import Flask, Response, render_template_string
 from picamera2 import Picamera2
 import cv2
+import time
 
 app = Flask(__name__)
 
@@ -23,11 +24,36 @@ def generate_frames():
         # Yield the frame in MJPEG format
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        # Wait for 3 seconds before capturing the next frame
+        time.sleep(3)
 
 @app.route('/video_feed')
 def video_feed():
     # Return a response with the JPEG frames
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/')
+def index():
+    # HTML template to display the video stream
+    return render_template_string('''
+    <!doctype html>
+    <html>
+    <head>
+        <title>Video Stream</title>
+    </head>
+    <body>
+        <h1>Video Stream</h1>
+        <img id="video" src="{{ url_for('video_feed') }}" style="width:640px; height:480px;">
+        <script>
+            // JavaScript to reload the image every 3 seconds
+            setInterval(() => {
+                const video = document.getElementById('video');
+                video.src = "{{ url_for('video_feed') }}" + '?t=' + new Date().getTime();
+            }, 3000);
+        </script>
+    </body>
+    </html>
+    ''')
 
 if __name__ == '__main__':
     # Start the Flask app on all IP addresses, port 5000
