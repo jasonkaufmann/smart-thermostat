@@ -99,6 +99,14 @@
             }
         }
 
+        // Function to activate the light
+        function activateLight() {
+            console.log("Activating light");
+            fetch("/activate_light", {
+                method: "POST"
+            });
+        }
+
         // Initialize the desired temperature and update the page every second
         window.onload = function() {
             initializeDesiredTemperature();
@@ -107,6 +115,7 @@
             setInterval(updateCurrentMode, 1000);
             setInterval(updateDesiredTemperature, 1000);
             setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
+            setInterval(activateLight, 1800000); // Activate light every 30 minutes
         };
     </script>
 </head>
