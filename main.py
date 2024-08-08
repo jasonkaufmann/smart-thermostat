@@ -338,6 +338,17 @@ def get_temperature_settings():
         "current_cool_temp": current_cool_temp
     })
 
+#write a handler for s post request called activate_light
+@app.route("/activate_light", methods=["POST"])
+def activate_light():
+    global last_action_time
+    if time.time() - last_action_time < 45:
+        logging.warning("Attempted to actuate light button within 45 seconds of last action")
+    else:
+        actuate_servo(servo_mode, 0, 180)
+        logging.info("Light button actuated")
+        last_action_time = time.time()
+    return jsonify({"status": "success"})
 
 def main():
     try:
