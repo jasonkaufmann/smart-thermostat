@@ -84,6 +84,7 @@ def set_temperature(target_temp):
     logging.info("Function set_temperature called with target_temp: %d", target_temp)
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
+    logging.debug("Local variables defined")
     with lock:
         logging.debug("Entered lock block in set_temperature")
         logging.debug("Current mode: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
