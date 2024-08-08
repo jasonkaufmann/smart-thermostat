@@ -84,8 +84,13 @@ def set_temperature(target_temp):
     logging.info("Function set_temperature called with target_temp: %d", target_temp)
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
-    logging.debug("Local variables defined")
-    with lock:
+    # Attempt to acquire lock with a timeout
+    acquired = lock.acquire(timeout=5)
+    if not acquired:
+        logging.error("Failed to acquire lock in set_temperature")
+        return
+
+    try:
         logging.debug("Entered lock block in set_temperature")
         logging.debug("Current mode: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
         logging.debug("Ambient temperature: %d°F", ambient_temp)
@@ -142,6 +147,10 @@ def set_temperature(target_temp):
             save_settings()
         else:
             logging.info("Simulation mode is on, not saving settings")
+    finally:
+        lock.release()
+        logging.debug("Lock released in set_temperature")
+
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
