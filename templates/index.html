@@ -16,6 +16,7 @@
                 .then(data => {
                     console.log(data);
                     currentSetTemp = data.desired_temperature;
+                    currentTargetTemp = currentSetTemp;
                     document.getElementById("set-temperature").value = currentSetTemp;
                     document.getElementById("desired-temperature").value = currentSetTemp;
                 });
