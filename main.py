@@ -290,6 +290,15 @@ def get_current_mode():
     logging.debug("Current mode requested: %s", mode_name)
     return jsonify({"current_mode": mode_name})
 
+@app.route("/desired_temperatures", methods=["GET"])
+def get_desired_temperatures():
+    global current_heat_temp, current_cool_temp
+    logging.debug("Desired temperatures requested: Heat %d°F, Cool %d°F", current_heat_temp, current_cool_temp)
+    return jsonify({
+        "desired_heat_temperature": current_heat_temp,
+        "desired_cool_temperature": current_cool_temp
+    })
+
 def main():
     try:
         # Load settings from the file at startup

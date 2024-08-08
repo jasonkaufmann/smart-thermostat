@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Thermostat</title>
     <script>
-        let currentTargetTemp = {{ current_heat_temp }};
-        let lastSentTemp = currentTargetTemp;
+        let currentTargetHeatTemp = {{ current_heat_temp }};
+        let currentTargetCoolTemp = {{ current_cool_temp }};
+        let lastSentHeatTemp = currentTargetHeatTemp;
+        let lastSentCoolTemp = currentTargetCoolTemp;
         let tempChangeTimeout;
 
         // Function to update the time since last action
@@ -36,10 +38,27 @@
                 });
         }
 
+        // Function to update the desired temperatures
+        function updateDesiredTemperatures() {
+            fetch("/desired_temperatures")
+                .then(response => response.json())
+                .then(data => {
+                    currentTargetHeatTemp = data.desired_heat_temperature;
+                    currentTargetCoolTemp = data.desired_cool_temperature;
+                    document.getElementById("heat-temperature").value = currentTargetHeatTemp;
+                    document.getElementById("cool-temperature").value = currentTargetCoolTemp;
+                });
+        }
+
         // Function to adjust the temperature
-        function adjustTemperature(change) {
-            currentTargetTemp += change;
-            document.getElementById("temperature").value = currentTargetTemp;
+        function adjustTemperature(change, type) {
+            if (type === 'heat') {
+                currentTargetHeatTemp += change;
+                document.getElementById("heat-temperature").value = currentTargetHeatTemp;
+            } else if (type === 'cool') {
+                currentTargetCoolTemp += change;
+                document.getElementById("cool-temperature").value = currentTargetCoolTemp;
+            }
 
             if (tempChangeTimeout) {
                 clearTimeout(tempChangeTimeout);
@@ -52,34 +71,43 @@
 
         // Function to send the temperature update to the server
         function sendTemperatureUpdate() {
-            if (currentTargetTemp !== lastSentTemp) {
+            let body = `set_temperature=true&heat_temperature=${currentTargetHeatTemp}&cool_temperature=${currentTargetCoolTemp}`;
+
+            if (currentTargetHeatTemp !== lastSentHeatTemp || currentTargetCoolTemp !== lastSentCoolTemp) {
                 fetch("/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/x-www-form-urlencoded"
                     },
-                    body: `set_temperature=true&temperature=${currentTargetTemp}`
+                    body: body
                 }).then(response => {
                     if (response.ok) {
-                        lastSentTemp = currentTargetTemp;
+                        lastSentHeatTemp = currentTargetHeatTemp;
+                        lastSentCoolTemp = currentTargetCoolTemp;
                     }
                 });
             }
         }
 
-        // Update the time, temperature, and mode every second
+        // Update the time, temperatures, and mode every second
         setInterval(updateTimeSinceLastAction, 1000);
         setInterval(updateAmbientTemperature, 1000);
         setInterval(updateCurrentMode, 1000);
+        setInterval(updateDesiredTemperatures, 1000);
     </script>
 </head>
 <body>
     <h1>Smart Thermostat Control</h1>
     <form method="POST">
-        <label for="temperature">Desired Temperature:</label>
-        <input type="number" id="temperature" name="temperature" value="{{ current_heat_temp }}" min="60" max="90" readonly>
-        <button type="button" onclick="adjustTemperature(1)">Increase</button>
-        <button type="button" onclick="adjustTemperature(-1)">Decrease</button>
+        <label for="heat-temperature">Desired Heat Temperature:</label>
+        <input type="number" id="heat-temperature" name="heat-temperature" value="{{ current_heat_temp }}" min="60" max="90" readonly>
+        <button type="button" onclick="adjustTemperature(1, 'heat')">Increase Heat</button>
+        <button type="button" onclick="adjustTemperature(-1, 'heat')">Decrease Heat</button>
+
+        <label for="cool-temperature">Desired Cool Temperature:</label>
+        <input type="number" id="cool-temperature" name="cool-temperature" value="{{ current_cool_temp }}" min="60" max="90" readonly>
+        <button type="button" onclick="adjustTemperature(1, 'cool')">Increase Cool</button>
+        <button type="button" onclick="adjustTemperature(-1, 'cool')">Decrease Cool</button>
 
         <div>
             <label>Mode:</label>
