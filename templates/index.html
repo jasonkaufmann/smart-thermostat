@@ -5,9 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Thermostat</title>
     <script>
-        let currentTargetTemp = { current_desired_temp };
-        let lastSentTemp = currentTargetTemp;
+        let currentTargetTemp;
+        let lastSentTemp;
         let tempChangeTimeout;
+
+        // Function to initialize the desired temperature
+        function initializeDesiredTemperature() {
+            fetch("/desired_temperature")
+                .then(response => response.json())
+                .then(data => {
+                    currentTargetTemp = data.desired_temperature;
+                    lastSentTemp = currentTargetTemp;
+                    document.getElementById("temperature").value = currentTargetTemp;
+                    document.getElementById("desired-temperature").innerText = currentTargetTemp + "°F";
+                });
+        }
 
         // Function to update the time since last action
         function updateTimeSinceLastAction() {
@@ -77,18 +89,21 @@
             }
         }
 
-        // Update the time, temperatures, and mode every second
-        setInterval(updateTimeSinceLastAction, 1000);
-        setInterval(updateAmbientTemperature, 1000);
-        setInterval(updateCurrentMode, 1000);
-        setInterval(updateDesiredTemperature, 1000);
+        // Initialize the desired temperature and update the page every second
+        window.onload = function() {
+            initializeDesiredTemperature();
+            setInterval(updateTimeSinceLastAction, 1000);
+            setInterval(updateAmbientTemperature, 1000);
+            setInterval(updateCurrentMode, 1000);
+            setInterval(updateDesiredTemperature, 1000);
+        };
     </script>
 </head>
 <body>
     <h1>Smart Thermostat Control</h1>
     <form method="POST">
         <label for="temperature">Desired Temperature:</label>
-        <input type="number" id="temperature" name="temperature" value="{{ current_desired_temp }}" min="60" max="90" readonly>
+        <input type="number" id="temperature" name="temperature" value="" min="60" max="90" readonly>
         <button type="button" onclick="adjustTemperature(1)">Increase</button>
         <button type="button" onclick="adjustTemperature(-1)">Decrease</button>
 
@@ -111,7 +126,7 @@
     </form>
     <p>Heat Temperature Setting: {{ current_heat_temp }}°F</p>
     <p>Cool Temperature Setting: {{ current_cool_temp }}°F</p>
-    <p>Current Desired Temperature: <span id="desired-temperature">{{ current_desired_temp }}°F</span></p>
+    <p>Current Desired Temperature: <span id="desired-temperature"></span></p>
     <p>Ambient Temperature: <span id="ambient-temperature">{{ ambient_temp | round(1) }}°F</span></p>
     <p>Current Mode: <span id="current-mode">{{ mode_options[current_mode] }}</span></p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
