@@ -27,6 +27,15 @@
                 });
         }
 
+        // Function to update the current mode
+        function updateCurrentMode() {
+            fetch("/current_mode")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("current-mode").innerText = data.current_mode;
+                });
+        }
+
         // Function to adjust the temperature
         function adjustTemperature(change) {
             currentTargetTemp += change;
@@ -58,9 +67,10 @@
             }
         }
 
-        // Update the time and temperature every second
+        // Update the time, temperature, and mode every second
         setInterval(updateTimeSinceLastAction, 1000);
         setInterval(updateAmbientTemperature, 1000);
+        setInterval(updateCurrentMode, 1000);
     </script>
 </head>
 <body>
@@ -91,7 +101,7 @@
     <p>Current Heat Temperature: {{ current_heat_temp }}°F</p>
     <p>Current Cool Temperature: {{ current_cool_temp }}°F</p>
     <p>Ambient Temperature: <span id="ambient-temperature">{{ ambient_temp | round(1) }}°F</span></p>
-    <p>Current Mode: {{ mode_options[current_mode] }}</p>
+    <p>Current Mode: <span id="current-mode">{{ mode_options[current_mode] }}</span></p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
     <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
 </body>
