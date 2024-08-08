@@ -81,28 +81,38 @@ def cycle_mode_to_desired(desired_mode):
 
 def set_temperature(target_temp):
     """Set the temperature to the target_temp."""
-    logging.info("Setting temperature to %d", target_temp)
+    logging.info("Function set_temperature called with target_temp: %d", target_temp)
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
     with lock:
+        logging.debug("Entered lock block in set_temperature")
+        logging.debug("Current mode: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
+        logging.debug("Ambient temperature: %d°F", ambient_temp)
+
         # Adjust mode based on ambient temperature and target
         if target_temp > ambient_temp and current_mode != MODE_HEAT:
+            logging.debug("Target temp (%d) > ambient temp (%d) and current mode is not HEAT", target_temp, ambient_temp)
             if time.time() - last_action_time > 45:
+                logging.info("More than 45 seconds since last action, activating screen")
                 activate_screen()
             logging.info("Switching to HEAT mode")
             cycle_mode_to_desired(MODE_HEAT)
         elif target_temp < ambient_temp and current_mode != MODE_COOL:
+            logging.debug("Target temp (%d) < ambient temp (%d) and current mode is not COOL", target_temp, ambient_temp)
             if time.time() - last_action_time > 45:
+                logging.info("More than 45 seconds since last action, activating screen")
                 activate_screen()
             logging.info("Switching to COOL mode")
             cycle_mode_to_desired(MODE_COOL)
 
         if current_mode == MODE_HEAT:
             temp_difference = target_temp - current_heat_temp
+            logging.debug("Calculated temperature difference for HEAT mode: %d", temp_difference)
             current_heat_temp = target_temp
             logging.info("Adjusting heat temperature to %d°F", current_heat_temp)
         elif current_mode == MODE_COOL:
             temp_difference = target_temp - current_cool_temp
+            logging.debug("Calculated temperature difference for COOL mode: %d", temp_difference)
             current_cool_temp = target_temp
             logging.info("Adjusting cool temperature to %d°F", current_cool_temp)
         else:
@@ -113,17 +123,24 @@ def set_temperature(target_temp):
         if temp_difference > 0:  # Increase temperature
             logging.info("Increasing temperature by %d degrees", temp_difference)
             for _ in range(temp_difference):
+                logging.debug("Actuating servo to increase temperature")
                 actuate_servo(servo_up, 180, 0)
             last_action_time = time.time()  # Update the last action time
+            logging.debug("Updated last_action_time after increasing temperature")
         elif temp_difference < 0:  # Decrease temperature
             logging.info("Decreasing temperature by %d degrees", abs(temp_difference))
             for _ in range(abs(temp_difference)):
+                logging.debug("Actuating servo to decrease temperature")
                 actuate_servo(servo_down, 0, 180)
             last_action_time = time.time()  # Update the last action time
+            logging.debug("Updated last_action_time after decreasing temperature")
 
         if not args.simulate:
+            logging.info("Simulation mode is off, saving settings to file")
             # Save the settings to the file
             save_settings()
+        else:
+            logging.info("Simulation mode is on, not saving settings")
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
