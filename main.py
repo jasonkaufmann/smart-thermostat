@@ -10,7 +10,7 @@ import logging
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 # Create the I2C bus interface.
 logging.debug("Initializing I2C bus interface")
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -295,7 +295,7 @@ def get_current_mode():
 @app.route("/set_temperature", methods=["GET"])
 def get_desired_temperature():
     global current_desired_temp
-    logging.debug("Desired temperature requested: %d°F", current_desired_temp)
+    #logging.debug("Desired temperature requested: %d°F", current_desired_temp)
     return jsonify({"desired_temperature": current_desired_temp})
 
 
