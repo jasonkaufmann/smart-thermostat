@@ -298,6 +298,13 @@ def get_desired_temperature():
     #logging.debug("Desired temperature requested: %d°F", current_desired_temp)
     return jsonify({"desired_temperature": current_desired_temp})
 
+@app.route("/temperature_settings")
+def get_temperature_settings():
+    return jsonify({
+        "current_heat_temp": current_heat_temp,
+        "current_cool_temp": current_cool_temp
+    })
+
 
 def main():
     try:

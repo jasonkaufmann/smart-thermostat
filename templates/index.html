@@ -17,7 +17,7 @@
                     console.log(data);
                     currentSetTemp = data.desired_temperature;
                     currentTargetTemp = currentSetTemp;
-                    document.getElementById("set-temperature").value = currentSetTemp;
+                    document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
                     document.getElementById("desired-temperature").value = currentSetTemp;
                 });
         }
@@ -59,6 +59,16 @@
                 });
         }
 
+        // Function to update heat and cool temperature settings
+        function updateTemperatureSettings() {
+            fetch("/temperature_settings")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("heat-temperature").innerText = data.current_heat_temp + "°F";
+                    document.getElementById("cool-temperature").innerText = data.current_cool_temp + "°F";
+                });
+        }
+
         // Function to adjust the temperature
         function adjustTemperature(change) {
             currentTargetTemp += change;
@@ -96,6 +106,7 @@
             setInterval(updateAmbientTemperature, 1000);
             setInterval(updateCurrentMode, 1000);
             setInterval(updateDesiredTemperature, 1000);
+            setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
         };
     </script>
 </head>
@@ -124,8 +135,8 @@
             {{ 'Disable' if manual_override else 'Enable' }} Manual Mode
         </button>
     </form>
-    <p>Heat Temperature Setting: {{ current_heat_temp }}°F</p>
-    <p>Cool Temperature Setting: {{ current_cool_temp }}°F</p>
+    <p>Heat Temperature Setting: <span id="heat-temperature">{{ current_heat_temp }}°F</span></p>
+    <p>Cool Temperature Setting: <span id="cool-temperature">{{ current_cool_temp }}°F</span></p>
     <p>Current Set Temperature: <span id="set-temperature"></span></p>
     <p>Ambient Temperature: <span id="ambient-temperature">{{ ambient_temp | round(1) }}°F</span></p>
     <p>Current Mode: <span id="current-mode">{{ mode_options[current_mode] }}</span></p>
