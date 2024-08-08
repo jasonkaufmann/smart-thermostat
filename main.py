@@ -253,7 +253,7 @@ def index():
 
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
-    logging.debug("Time since last action: %.1f seconds", time_since_last_action)
+    #logging.debug("Time since last action: %.1f seconds", time_since_last_action)
 
     # Read the latest ambient temperature from the file
     read_ambient_temperature()
@@ -274,14 +274,14 @@ def get_time_since_last_action():
     global last_action_time
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
-    logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
+    #logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
     return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
 
 @app.route("/ambient_temperature", methods=["GET"])
 def get_ambient_temperature():
     global ambient_temp
     # Ensure the latest ambient temperature is read
-    logging.debug("Ambient temperature requested")
+    #logging.debug("Ambient temperature requested")
     read_ambient_temperature()
     return jsonify({"ambient_temperature": ambient_temp})
 
@@ -289,7 +289,7 @@ def get_ambient_temperature():
 def get_current_mode():
     global current_mode
     mode_name = ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]
-    logging.debug("Current mode requested: %s", mode_name)
+    #logging.debug("Current mode requested: %s", mode_name)
     return jsonify({"current_mode": mode_name})
 
 @app.route("/set_temperature", methods=["GET"])
