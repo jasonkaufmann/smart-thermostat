@@ -25,7 +25,7 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         # Wait for 3 seconds before capturing the next frame
-        time.sleep(3)
+        time.sleep(1)
 
 @app.route('/video_feed')
 def video_feed():
