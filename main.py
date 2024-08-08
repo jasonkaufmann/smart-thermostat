@@ -134,7 +134,7 @@ def activate_screen():
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
-    logging.info("Reading ambient temperature")
+    #logging.info("Reading ambient temperature")
     global ambient_temp, current_desired_temp
     ambient_temp_new = None
     try:
@@ -312,7 +312,7 @@ def main():
 
         # Start Flask web server
         logging.info("Starting Flask web server")
-        app.debug = True
+        app.debug = False
         app.run(host="0.0.0.0", port=5000)
 
     finally:
