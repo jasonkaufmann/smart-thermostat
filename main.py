@@ -147,8 +147,7 @@ def read_ambient_temperature():
         if ambient_temp_new != ambient_temp:
             ambient_temp = ambient_temp_new
             logging.info("Ambient temperature updated to: %.1f°F", ambient_temp_new)
-            if current_desired_temp is not None:
-                set_temperature(current_desired_temp)  # Adjust temperature based on new ambient
+            set_temperature(current_desired_temp)  # Adjust temperature based on new ambient
 
 def save_settings():
     """Save current settings to a file."""
