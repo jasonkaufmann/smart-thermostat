@@ -14,6 +14,9 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/home/jason/spry-dispatcher-4318
 # Initialize Google Vision client
 client = vision.ImageAnnotatorClient()
 
+# Initialize EasyOCR reader
+reader = easyocr.Reader(['en'])
+
 # Function to call Google Cloud Vision API
 def call_vision_api(image):
     response = client.text_detection(image=image)
@@ -21,6 +24,9 @@ def call_vision_api(image):
 
 # Function to process the image and extract numbers
 def process_image(frame):
+    # Save the pre-OCR image for review
+    cv2.imwrite('latest_photo.jpg', frame)  # Saves the cropped image
+    
     # Convert the image to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -58,11 +64,28 @@ def process_image(frame):
                 detected_number = ""
 
             print("Detected numbers by Google Vision:", detected_number if texts else "No text found")
-            return detected_number
-
+        
         except TimeoutError:
             print("Google Vision API call timed out. Skipping this image.")
-            return ""
+            detected_number = ""
+
+    # Use Tesseract OCR
+    pytesseract_text = pytesseract.image_to_string(cropped, config='--psm 6')
+    pytesseract_number = re.sub(r'\D', '', pytesseract_text)
+    print("Detected text by Pytesseract:", pytesseract_text)
+    print("Detected numbers by Pytesseract:", pytesseract_number)
+
+    # Use EasyOCR
+    easyocr_results = reader.readtext(cropped)
+    easyocr_text = ''.join([result[1] for result in easyocr_results])
+    easyocr_number = re.sub(r'\D', '', easyocr_text)
+    print("Detected text by EasyOCR:", easyocr_text)
+    print("Detected numbers by EasyOCR:", easyocr_number)
+
+    # Choose the detected number based on the most consistent result
+    # Here, you can implement a strategy to decide which OCR result to trust
+    # For now, we will just return Google Vision's result as before
+    return detected_number
 
 # Function to transfer the detected number via SCP
 def transfer_number(number):
@@ -84,7 +107,7 @@ def transfer_number(number):
 transfer_count = 0  # Initialize transfer counter
 
 # Initialize video capture from the stream
-cap = cv2.VideoCapture('http://10.0.0.54:5000/video_feed')
+cap = cv2.VideoCapture('http://10.0.0.54:5001/video_feed')
 
 # Main loop to process video frames
 while True:
@@ -103,7 +126,7 @@ while True:
         print("No valid number detected.")
     
     # Wait for 12 seconds
-    time.sleep(12)
+    time.sleep(10)
 
 # Release the video capture object
 cap.release()

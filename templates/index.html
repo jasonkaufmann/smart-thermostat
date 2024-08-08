@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Thermostat</title>
     <script>
+        let currentTargetTemp = {{ current_heat_temp }};
+        let lastSentTemp = currentTargetTemp;
+        let tempChangeTimeout;
+
         // Function to update the time since last action
         function updateTimeSinceLastAction() {
             fetch("/time_since_last_action")
@@ -23,6 +27,37 @@
                 });
         }
 
+        // Function to adjust the temperature
+        function adjustTemperature(change) {
+            currentTargetTemp += change;
+            document.getElementById("temperature").value = currentTargetTemp;
+
+            if (tempChangeTimeout) {
+                clearTimeout(tempChangeTimeout);
+            }
+
+            tempChangeTimeout = setTimeout(() => {
+                sendTemperatureUpdate();
+            }, 10000);
+        }
+
+        // Function to send the temperature update to the server
+        function sendTemperatureUpdate() {
+            if (currentTargetTemp !== lastSentTemp) {
+                fetch("/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: `set_temperature=true&temperature=${currentTargetTemp}`
+                }).then(response => {
+                    if (response.ok) {
+                        lastSentTemp = currentTargetTemp;
+                    }
+                });
+            }
+        }
+
         // Update the time and temperature every second
         setInterval(updateTimeSinceLastAction, 1000);
         setInterval(updateAmbientTemperature, 1000);
@@ -32,8 +67,9 @@
     <h1>Smart Thermostat Control</h1>
     <form method="POST">
         <label for="temperature">Desired Temperature:</label>
-        <input type="number" id="temperature" name="temperature" value="{{ current_heat_temp }}" min="60" max="90">
-        <button type="submit" name="set_temperature">Set Temperature</button>
+        <input type="number" id="temperature" name="temperature" value="{{ current_heat_temp }}" min="60" max="90" readonly>
+        <button type="button" onclick="adjustTemperature(1)">Increase</button>
+        <button type="button" onclick="adjustTemperature(-1)">Decrease</button>
 
         <div>
             <label>Mode:</label>
