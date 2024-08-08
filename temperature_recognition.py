@@ -20,12 +20,9 @@ def call_vision_api(image):
     return response.text_annotations
 
 # Function to process the image and extract numbers
-def process_image():
-    # Load the image
-    image = cv2.imread('latest_photo.jpg')  # Ensure correct path to the image
-
+def process_image(frame):
     # Convert the image to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Improve contrast via histogram equalization
     equ = cv2.equalizeHist(gray)
@@ -86,9 +83,19 @@ def transfer_number(number):
 
 transfer_count = 0  # Initialize transfer counter
 
-# Main loop to run every 12 seconds
+# Initialize video capture from the stream
+cap = cv2.VideoCapture('http://10.0.0.54:5000/video_feed')
+
+# Main loop to process video frames
 while True:
-    detected_number = process_image()
+    # Capture frame-by-frame
+    ret, frame = cap.read()
+    
+    if not ret:
+        print("Failed to grab frame. Exiting...")
+        break
+
+    detected_number = process_image(frame)
     if detected_number.isdigit():
         transfer_number(detected_number)
         transfer_count += 1
@@ -98,3 +105,5 @@ while True:
     # Wait for 12 seconds
     time.sleep(12)
 
+# Release the video capture object
+cap.release()
