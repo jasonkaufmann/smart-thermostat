@@ -83,49 +83,49 @@ def video_feed():
     # Return a response with the JPEG frames
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# def actuate_servo(servo, start_angle, target_angle):
-#     """Move the servo from start_angle to target_angle and back."""
-#     logging.info("Actuating servo from angle %d to %d", start_angle, target_angle)
-#     if args.simulate:
-#         logging.debug(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
-#     else:
-#         servo.angle = target_angle
-#         time.sleep(0.3)  # Delay for 0.3 seconds
-#         servo.angle = start_angle
-#         time.sleep(0.5)  # Delay for 0.5 seconds
-
-def actuate_servo(servo, start_angle, target_angle, step=1, delay=0.02):
-    """Move the servo from start_angle to target_angle and back with smoother motion."""
+def actuate_servo(servo, start_angle, target_angle):
+    """Move the servo from start_angle to target_angle and back."""
     logging.info("Actuating servo from angle %d to %d", start_angle, target_angle)
-    
     if args.simulate:
         logging.debug(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
     else:
-        # Move to target angle
-        if start_angle < target_angle:
-            for angle in range(start_angle, target_angle, step):
-                servo.angle = angle
-                time.sleep(delay)
-        else:
-            for angle in range(start_angle, target_angle, -step):
-                servo.angle = angle
-                time.sleep(delay)
+        servo.angle = target_angle
+        time.sleep(0.3)  # Delay for 0.3 seconds
+        servo.angle = start_angle
+        time.sleep(0.5)  # Delay for 0.5 seconds
+
+# def actuate_servo(servo, start_angle, target_angle, step=1, delay=0.02):
+#     """Move the servo from start_angle to target_angle and back with smoother motion."""
+#     logging.info("Actuating servo from angle %d to %d", start_angle, target_angle)
+    
+#     if args.simulate:
+#         logging.debug(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
+#     else:
+#         # Move to target angle
+#         if start_angle < target_angle:
+#             for angle in range(start_angle, target_angle, step):
+#                 servo.angle = angle
+#                 time.sleep(delay)
+#         else:
+#             for angle in range(start_angle, target_angle, -step):
+#                 servo.angle = angle
+#                 time.sleep(delay)
                 
-        # Brief pause at the target position
-        time.sleep(0.3)
+#         # Brief pause at the target position
+#         time.sleep(0.3)
         
-        # Move back to start angle
-        if target_angle < start_angle:
-            for angle in range(target_angle, start_angle, step):
-                servo.angle = angle
-                time.sleep(delay)
-        else:
-            for angle in range(target_angle, start_angle, -step):
-                servo.angle = angle
-                time.sleep(delay)
+#         # Move back to start angle
+#         if target_angle < start_angle:
+#             for angle in range(target_angle, start_angle, step):
+#                 servo.angle = angle
+#                 time.sleep(delay)
+#         else:
+#             for angle in range(target_angle, start_angle, -step):
+#                 servo.angle = angle
+#                 time.sleep(delay)
         
-        # Brief pause at the start position
-        time.sleep(0.5)
+#         # Brief pause at the start position
+#         time.sleep(0.5)
 
 
 def cycle_mode_to_desired(desired_mode):
