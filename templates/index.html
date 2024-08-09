@@ -21,6 +21,15 @@
                     document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
                     document.getElementById("desired-temperature").value = currentSetTemp;
                 });
+
+            fetch("/current_mode")
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    currentMode = data.current_mode;
+                    //set the radio buttont to the current mode
+                    document.querySelector(`input[name="mode"][value="${data.current_mode}"]`).checked = true;
+                });
         }
 
         // Function to update the time since last action
@@ -95,6 +104,8 @@
         // Function to check mode change
         function checkModeChange() {
             const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            console.log("Selected Mode: " + selectedMode);
+            console.log("Current Mode: " + currentMode);
             if (selectedMode !== currentMode) {
                 console.log("Mode changed to: " + selectedMode);
                 fetch("/", {
