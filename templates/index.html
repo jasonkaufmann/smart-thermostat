@@ -26,9 +26,9 @@
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                    currentMode = data.current_mode;
-                    //set the radio buttont to the current mode
-                    document.querySelector(`input[name="mode"][value="${data.current_mode}"]`).checked = true;
+                    currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
+                    // Set the radio button to the current mode
+                    document.querySelector(`input[name="mode"][value="${currentMode}"]`).checked = true;
                 });
         }
 
@@ -155,13 +155,17 @@
 
         <div>
             <label>Mode:</label>
-            {% for mode in mode_options %}
             <label>
-                <input type="radio" name="mode" value="{{ mode.lower() }}" {% if current_mode == loop.index0 %}checked{% endif %}>
-                {{ mode }}
+                <input type="radio" name="mode" value="off" {% if current_mode == 0 %}checked{% endif %}> OFF
             </label>
-            {% endfor %}
+            <label>
+                <input type="radio" name="mode" value="heat" {% if current_mode == 1 %}checked{% endif %}> HEAT
+            </label>
+            <label>
+                <input type="radio" name="mode" value="cool" {% if current_mode == 2 %}checked{% endif %}> COOL
+            </label>
         </div>
+        
     </form>
     <p>Heat Temperature Setting: <span id="heat-temperature">{{ current_heat_temp }}°F</span></p>
     <p>Cool Temperature Setting: <span id="cool-temperature">{{ current_cool_temp }}°F</span></p>
