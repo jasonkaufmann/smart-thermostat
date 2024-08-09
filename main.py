@@ -9,6 +9,7 @@ from adafruit_motor import servo
 import threading
 import argparse
 import logging
+from flask_cors import CORS
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -59,6 +60,7 @@ picam2.configure(config)
 picam2.start()
 
 app = Flask(__name__)
+CORS(app)  # This will enable CORS for all routes and methods
 
 def generate_frames():
     while True:
