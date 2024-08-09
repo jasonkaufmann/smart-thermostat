@@ -47,7 +47,7 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("current-mode").innerText = data.current_mode;
-                    currentMode = data.current_mode;
+                    currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
                 });
         }
 
