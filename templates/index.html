@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Thermostat</title>
+    <title>Smart Thermostat with Video Stream</title>
     <script>
         let currentTargetTemp;
         let currentSetTemp;
         let tempChangeTimeout;
+        let currentMode;
 
         // Function to initialize the desired temperature
         function initializeDesiredTemperature() {
@@ -31,21 +32,13 @@
                 });
         }
 
-        // Function to update the ambient temperature
-        function updateAmbientTemperature() {
-            fetch("/ambient_temperature")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("ambient-temperature").innerText = data.ambient_temperature.toFixed(1) + "°F";
-                });
-        }
-
         // Function to update the current mode
         function updateCurrentMode() {
             fetch("/current_mode")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("current-mode").innerText = data.current_mode;
+                    currentMode = data.current_mode;
                 });
         }
 
@@ -98,6 +91,21 @@
                 });
             }
         }
+        
+        // Function to check mode change
+        function checkModeChange() {
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            if (selectedMode !== currentMode) {
+                console.log("Mode changed to: " + selectedMode);
+                fetch("/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: `mode=${selectedMode}`
+                });
+            }
+        }
 
         // Function to activate the light
         function activateLight() {
@@ -111,11 +119,17 @@
         window.onload = function() {
             initializeDesiredTemperature();
             setInterval(updateTimeSinceLastAction, 1000);
-            setInterval(updateAmbientTemperature, 1000);
             setInterval(updateCurrentMode, 1000);
             setInterval(updateDesiredTemperature, 1000);
             setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
-            setInterval(activateLight, 1800000); // Activate light every 30 minutes
+            setInterval(checkModeChange, 10000); // Check for mode changes
+            //setInterval(activateLight, 1800000); // Activate light every 30 minutes
+
+            // Reload the video feed every 3 seconds
+            setInterval(() => {
+                const video = document.getElementById('video');
+                video.src = "{{ url_for('video_feed') }}" + '?t=' + new Date().getTime();
+            }, 3000);
         };
     </script>
 </head>
@@ -147,9 +161,11 @@
     <p>Heat Temperature Setting: <span id="heat-temperature">{{ current_heat_temp }}°F</span></p>
     <p>Cool Temperature Setting: <span id="cool-temperature">{{ current_cool_temp }}°F</span></p>
     <p>Current Set Temperature: <span id="set-temperature"></span></p>
-    <p>Ambient Temperature: <span id="ambient-temperature">{{ ambient_temp | round(1) }}°F</span></p>
     <p>Current Mode: <span id="current-mode">{{ mode_options[current_mode] }}</span></p>
     <p>Manual Override: {{ 'Active' if manual_override else 'Inactive' }}</p>
     <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
+
+    <h2>Video Stream</h2>
+    <img id="video" src="{{ url_for('video_feed') }}" style="width:640px; height:480px;">
 </body>
 </html>

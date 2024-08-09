@@ -7,18 +7,40 @@ import time
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
+
+# Initialize EasyOCR reader
+reader = easyocr.Reader(['en'], gpu=False)
+
+# Setup retry mechanism for video capture
+max_retries = 5
+retry_delay = 2  # seconds
+success = False
+
+while not success and max_retries > 0:
+    cap = cv2.VideoCapture('http://10.0.0.54:5001/video_feed')
+    if not cap.isOpened():
+        print("Unable to connect to camera. Retrying in {} seconds...".format(retry_delay))
+        max_retries -= 1
+        time.sleep(retry_delay)
+    else:
+        success = True
+
+if not success:
+    print("Failed to connect to the video stream after several attempts.")
+    exit(1)
+
 counter = 0
 while True:
-    cap = cv2.VideoCapture('http://10.0.0.54:5001/video_feed')
     ret, frame = cap.read()
-    # Load image
-    #img = cv2.imread("pre_ocr_image.jpg")
+    if not ret:
+        print("Failed to read frame from video stream. Exiting...")
+        break
 
     # Apply Gaussian blur to reduce noise
     blurred = cv2.GaussianBlur(frame, (5, 5), 0)
 
     # Define the region of interest (ROI) for cropping
-    x, y, w, h = 165, 180, 250, 200  # Adjust these coordinates as needed
+    x, y, w, h = 200, 200, 250, 200  # Adjust these coordinates as needed
     img = blurred[y:y+h, x:x+w]
 
     # Convert to grayscale
@@ -27,7 +49,7 @@ while True:
 
     # Apply adaptive thresholding
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, 
-                                cv2.THRESH_BINARY_INV, 11, 2)
+                                   cv2.THRESH_BINARY_INV, 11, 2)
     cv2.imwrite("binary.jpg", binary)
 
     # Define a kernel for morphological operations
@@ -39,25 +61,11 @@ while True:
 
     # Close gaps in contours by dilating and then eroding the cleaned image
     dilated = cv2.dilate(cleaned, kernel, iterations=4)  # Dilate to close gaps
-
-    cv2.imwrite("dilated.jpg", dilated)
-
     eroded = cv2.erode(dilated, kernel, iterations=2)  # Erode to restore size
 
     cv2.imwrite("eroded.jpg", eroded)
 
-    # # Find contours on the processed image
-    # contours, _ = cv2.findContours(eroded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # # Create an empty image for filling the contours
-    # filled_contours_img = np.zeros_like(binary)
-
-    # # Fill the contours
-    # cv2.drawContours(filled_contours_img, contours, -1, (255, 255, 255), thickness=cv2.FILLED)
-    # cv2.imwrite('filled_contours.jpg', filled_contours_img)
-
-    # Perform OCR using easyocr
-    reader = easyocr.Reader(['en'], gpu=False)  # Initialize EasyOCR reader
+    # Perform OCR
     results = reader.readtext(eroded, detail=0)  # Get only text
     extracted_text = ''.join(results)
     print(f"Extracted text: {extracted_text}")
@@ -65,7 +73,7 @@ while True:
     # Validate and process OCR result
     if extracted_text.isdigit() and len(extracted_text) == 2:
         value = int(extracted_text)
-        if 50 <= value <= 80:
+        if 60 <= value <= 80:
             # Save the valid number to temp.txt
             with open("temp.txt", "w") as file:
                 file.write(extracted_text)
@@ -78,8 +86,6 @@ while True:
     else:
         print("Detected text is not a two-digit number.")
     
-    # Increment the counter
     counter += 1
     print(f"Processed frame {counter}")
     time.sleep(4)
-        

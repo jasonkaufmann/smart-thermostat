@@ -1,29 +1,32 @@
+from flask import Flask, Response, render_template, request, jsonify, redirect
+from picamera2 import Picamera2
+import cv2
 import time
 import board
 import busio
 from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 import threading
-from flask import Flask, render_template, request, redirect, jsonify
 import argparse
 import logging
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
-# Create the I2C bus interface.
+
+# Create the I2C bus interface
 logging.debug("Initializing I2C bus interface")
 i2c = busio.I2C(board.SCL, board.SDA)
 
-# Create a PCA9685 instance.
+# Create a PCA9685 instance
 logging.debug("Creating PCA9685 instance")
 pca = PCA9685(i2c)
 
-# Set the PWM frequency to 50Hz, suitable for servos.
+# Set the PWM frequency to 50Hz, suitable for servos
 logging.debug("Setting PCA9685 frequency to 50Hz")
 pca.frequency = 50
 
-# Create servo objects for channels.
+# Create servo objects for channels
 logging.debug("Creating servo objects for channels")
 servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
 servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
@@ -39,7 +42,6 @@ current_heat_temp = 75
 current_cool_temp = 75
 ambient_temp = 75  # Default ambient temperature
 current_mode = MODE_OFF
-manual_override = False  # Manual override flag
 last_action_time = time.time() - 100  # Start with time since last press > 45 seconds
 screen_active = False  # Track whether the screen is active
 lock = threading.Lock()
@@ -50,7 +52,34 @@ parser = argparse.ArgumentParser(description="Smart Thermostat Control")
 parser.add_argument('--simulate', action='store_true', help='Run in simulation mode (no servo actuation)')
 args = parser.parse_args()
 
+# Initialize the camera
+picam2 = Picamera2()
+config = picam2.create_video_configuration(main={"size": (640, 480), "format": "RGB888"})
+picam2.configure(config)
+picam2.start()
+
 app = Flask(__name__)
+
+def generate_frames():
+    while True:
+        # Capture frame-by-frame
+        frame = picam2.capture_array()
+        # Convert RGB to BGR
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Encode the frame in JPEG format
+        ret, buffer = cv2.imencode('.jpg', frame_bgr)
+        # Convert the frame to bytes
+        frame_bytes = buffer.tobytes()
+        # Yield the frame in MJPEG format
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        # Wait for 1 second before capturing the next frame
+        time.sleep(1)
+
+@app.route('/video_feed')
+def video_feed():
+    # Return a response with the JPEG frames
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
@@ -157,7 +186,6 @@ def set_temperature(target_temp):
         lock.release()
         logging.debug("Lock released in set_temperature")
 
-
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
     logging.info("Activating screen...")
@@ -232,25 +260,19 @@ def log_info():
                 file.write(f"Current cool temperature: {current_cool_temp}°F\n")
                 file.write(f"Ambient temperature: {ambient_temp}°F\n")
                 file.write(f"Current mode: {['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]}\n")
-                file.write(f"Manual override: {'Active' if manual_override else 'Inactive'}\n")
 
         time.sleep(1)  # Log every second
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global current_mode, manual_override, last_action_time, current_desired_temp
+    global current_mode, last_action_time, current_desired_temp
 
     logging.info("Received %s request to /", request.method)
 
     if request.method == "POST":
         logging.debug("Form data received: %s", request.form)
 
-        # Handle manual override request
-        if "manual_override" in request.form:
-            manual_override = not manual_override
-            logging.info("Manual override %s", "enabled" if manual_override else "disabled")
-            return redirect("/")
-
+    
         # Handle temperature set request
         if "set_temperature" in request.form:
             logging.info("Received temperature set request")
@@ -261,7 +283,7 @@ def index():
             return redirect("/")
 
         # Handle mode set request only if manual override is active
-        if "mode" in request.form and manual_override:
+        if "mode" in request.form:
             selected_mode = request.form.get("mode")
             if selected_mode == "heat":
                 cycle_mode_to_desired(MODE_HEAT)
@@ -298,7 +320,6 @@ def index():
         ambient_temp=ambient_temp,
         current_mode=current_mode,
         mode_options=["OFF", "HEAT", "COOL"],
-        manual_override=manual_override,
         time_since_last_action=time_since_last_action
     )
 
@@ -338,7 +359,6 @@ def get_temperature_settings():
         "current_cool_temp": current_cool_temp
     })
 
-#write a handler for s post request called activate_light
 @app.route("/activate_light", methods=["POST"])
 def activate_light():
     global last_action_time
@@ -369,7 +389,7 @@ def main():
     finally:
         logging.info("Exiting application")
         if not args.simulate:
-            # Set all servos to a neutral position before exiting.
+            # Set all servos to a neutral position before exiting
             servo_down.angle = 0
             servo_mode.angle = 0
             servo_up.angle = 180  # Return up servo to its default position
