@@ -60,18 +60,23 @@ picam2.configure(config)
 picam2.start()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# Updated CORS configuration to allow specific origins
+CORS(app, resources={r"/*": {"origins": ["http://localhost:5000"]}})
+
 
 # Middleware to add security headers
 @app.after_request
 def add_security_headers(response):
+    # Added frame-ancestors directive for security
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
         "script-src 'self'; "
         "style-src 'self'; "
         "img-src 'self'; "
-        "connect-src 'self';"
+        "connect-src 'self' http://10.0.0.54:5000; "
+        "frame-ancestors 'none';"  # Prevents clickjacking attacks
     )
+
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
