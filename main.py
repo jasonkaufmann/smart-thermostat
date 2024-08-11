@@ -55,7 +55,7 @@ args = parser.parse_args()
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_video_configuration(main={"size": (640, 480), "format": "RGB888"})
+config = picam2.create_video_configuration(main={"size": (1920, 1080), "format": "RGB888"})
 picam2.configure(config)
 picam2.start()
 
@@ -407,7 +407,7 @@ def main():
         # Start Flask web server
         logging.info("Starting Flask web server")
         app.debug = False
-        app.run(host="0.0.0.0", port=5000, ssl_context=('cert.pem', 'key.pem'))
+        app.run(host="0.0.0.0", port=5000)
 
     finally:
         logging.info("Exiting application")
