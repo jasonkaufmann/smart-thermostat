@@ -132,6 +132,7 @@ function activateLight() {
     console.log("Activating light");
     fetch("http://10.0.0.54:5000/activate_light", {
         method: "POST",
+        
     })
     .then(response => response.json())
     .then(data => console.log('Light activation response:', data))
@@ -149,10 +150,10 @@ window.onload = function() {
         setInterval(checkModeChange, 10000); // Check for mode changes
         //setInterval(activateLight, 1800000); // Activate light every 30 minutes
 
-        // Reload the video feed every 3 seconds
+        // Reload the video feed every 3 seconds using the evaluated URL
         setInterval(() => {
             const video = document.getElementById('video');
-            video.src = "{{ url_for('video_feed') }}" + '?t=' + new Date().getTime();
+            video.src = videoFeedUrl + '?t=' + new Date().getTime();
         }, 3000);
     }, 2000); // 2-second delay before initialization
 };

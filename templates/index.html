@@ -8,8 +8,12 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <title>Smart Thermostat with Video Stream</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> <!-- Link to the external CSS -->
-    <script src="{{ url_for('static', filename='script.js') }}" defer></script> <!-- Link to the external script -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <script>
+        // Set the video URL in a script tag so Jinja can evaluate it
+        const videoFeedUrl = "{{ url_for('video_feed') }}";
+    </script>
 </head>
 <body>
     <h1>Smart Thermostat Control</h1>
