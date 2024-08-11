@@ -363,13 +363,18 @@ def index():
 
 @app.route("/set_mode", methods=["POST"])
 def set_mode():
-    global current_mode
+    global current_mode, last_action_time
     data = request.get_json()
     
     if not data or 'mode' not in data:
         return jsonify({"status": "error", "message": "Invalid data"}), 400
     
     mode = data['mode'].lower()
+
+    if time.time() - last_action_time > 45:
+        logging.info("More than 45 seconds since last action, activating screen")
+        activate_screen()
+        last_action_time = time.time()
     
     if mode == 'heat':
         cycle_mode_to_desired(MODE_HEAT)
@@ -387,7 +392,6 @@ def set_mode():
         return jsonify({"status": "error", "message": "Invalid mode"}), 400
     
     return jsonify({"status": "success", "mode": mode})
-
 
 
 @app.route("/time_since_last_action", methods=["GET"])
