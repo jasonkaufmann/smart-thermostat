@@ -389,6 +389,12 @@ def set_mode():
         current_mode = MODE_OFF
     else:
         return jsonify({"status": "error", "message": "Invalid mode"}), 400
+
+    if not args.simulate:
+        logging.info("Simulation mode is off, saving settings to file")
+        # Save the settings to the file
+        save_settings()
+    
     
     return jsonify({"status": "success", "mode": mode})
 
