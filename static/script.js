@@ -245,39 +245,37 @@ function activateLight() {
 window.onload = function() {
     console.log("Window loaded, starting initialization");
 
-    setTimeout(() => {
-        console.log("Initializing...");
-        initializeDesiredTemperature();
-        setInterval(updateTimeSinceLastAction, 1000);
-        setInterval(updateCurrentMode, 1000);
-        setInterval(updateDesiredTemperature, 1000);
-        setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
+    console.log("Initializing...");
+    initializeDesiredTemperature();
+    setInterval(updateTimeSinceLastAction, 1000);
+    setInterval(updateCurrentMode, 1000);
+    setInterval(updateDesiredTemperature, 1000);
+    setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
 
-        // Get the video feed URL from the data attribute
-        const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
-        console.log("Video feed URL:", videoFeedUrl);
+    // Get the video feed URL from the data attribute
+    const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
+    console.log("Video feed URL:", videoFeedUrl);
 
-        // Reload the video feed every 3 seconds using the evaluated URL
-        setInterval(() => {
-            console.log("Reloading video feed");
-            const video = document.getElementById('video');
-            video.src = videoFeedUrl + '?t=' + new Date().getTime();
-        }, 3000);
+    // Reload the video feed every 3 seconds using the evaluated URL
+    setInterval(() => {
+        console.log("Reloading video feed");
+        const video = document.getElementById('video');
+        video.src = videoFeedUrl + '?t=' + new Date().getTime();
+    }, 3000);
 
-        // Add event listeners for temperature buttons
-        document.getElementById('increase-temp').addEventListener('click', () => {
-            console.log("Increase temperature button clicked");
-            adjustTemperature(1);
-            debouncedSendTemperatureUpdate();
-        });
+    // Add event listeners for temperature buttons
+    document.getElementById('increase-temp').addEventListener('click', () => {
+        console.log("Increase temperature button clicked");
+        adjustTemperature(1);
+        debouncedSendTemperatureUpdate();
+    });
 
-        document.getElementById('decrease-temp').addEventListener('click', () => {
-            console.log("Decrease temperature button clicked");
-            adjustTemperature(-1);
-            debouncedSendTemperatureUpdate();
-        });
+    document.getElementById('decrease-temp').addEventListener('click', () => {
+        console.log("Decrease temperature button clicked");
+        adjustTemperature(-1);
+        debouncedSendTemperatureUpdate();
+    });
 
-        // Add event listener for light button
-        document.getElementById('light-btn').addEventListener('click', activateLight);
-    }, 2000); // 2-second delay before initialization
+    // Add event listener for light button
+    document.getElementById('light-btn').addEventListener('click', activateLight);
 };
