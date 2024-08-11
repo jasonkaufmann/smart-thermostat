@@ -12,7 +12,7 @@
 
         // Function to initialize the desired temperature
         function initializeDesiredTemperature() {
-            fetch("http://10.0.0.54:5000/set_temperature/")
+            fetch("https://10.0.0.54:5000/set_temperature")
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -23,7 +23,7 @@
                 })
                 .catch(error => console.error('Error fetching initial temperature:', error));
 
-            fetch("http://10.0.0.54:5000/current_mode/")
+            fetch("https://10.0.0.54:5000/current_mode")
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
@@ -36,7 +36,7 @@
 
         // Function to update the time since last action
         function updateTimeSinceLastAction() {
-            fetch("http://10.0.0.54:5000/time_since_last_action/")
+            fetch("https://10.0.0.54:5000/time_since_last_action")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("time-since-last-action").innerText = data.time_since_last_action + " seconds";
@@ -46,7 +46,7 @@
 
         // Function to update the current mode
         function updateCurrentMode() {
-            fetch("http://10.0.0.54:5000/current_mode/")
+            fetch("https://10.0.0.54:5000/current_mode")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("current-mode").innerText = data.current_mode;
@@ -57,7 +57,7 @@
 
         // Function to update the desired temperature
         function updateDesiredTemperature() {
-            fetch("http://10.0.0.54:5000/set_temperature/")
+            fetch("http://10.0.0.54:5000/set_temperature")
                 .then(response => response.json())
                 .then(data => {
                     currentSetTemp = data.desired_temperature;
@@ -68,7 +68,7 @@
 
         // Function to update heat and cool temperature settings
         function updateTemperatureSettings() {
-            fetch("http://10.0.0.54:5000/temperature_settings/")
+            fetch("https://10.0.0.54:5000/temperature_settings")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("heat-temperature").innerText = data.current_heat_temp + "°F";
@@ -97,7 +97,7 @@
             console.log("Current Set Temp: " + currentSetTemp);
             console.log("Current Target Temp: " + currentTargetTemp);
             if (currentTargetTemp !== currentSetTemp) {
-                fetch("http://10.0.0.54:5000/set_temperature/", {
+                fetch("https://10.0.0.54:5000/set_temperature", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -118,7 +118,7 @@
             console.log("Current Mode: " + currentMode);
             if (selectedMode !== currentMode) {
                 console.log("Mode changed to: " + selectedMode);
-                fetch("http://10.0.0.54:5000/set_mode/", {
+                fetch("https://10.0.0.54:5000/set_mode", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -135,7 +135,7 @@
         // Function to activate the light
         function activateLight() {
             console.log("Activating light");
-            fetch("http://10.0.0.54:5000/activate_light/", {
+            fetch("https://10.0.0.54:5000/activate_light", {
                 method: "POST"
             })
             .then(response => response.json())
