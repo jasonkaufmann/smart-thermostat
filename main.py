@@ -60,7 +60,20 @@ picam2.configure(config)
 picam2.start()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+@app.before_request
+def before_request():
+    if request.method == 'OPTIONS':
+        # Allow the GET, POST, and OPTIONS methods
+        response = app.make_default_options_response()
+        headers = response.headers
+
+        headers['Access-Control-Allow-Origin'] = '*'
+        headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+        return response
 
 def generate_frames():
     while True:
@@ -119,7 +132,7 @@ def set_temperature(target_temp):
     acquired = lock.acquire(timeout=5)
     if not acquired:
         logging.error("Failed to acquire lock in set_temperature")
-        return
+        return jsonify({"status": "error", "message": "Could not acquire lock"}), 503
 
     try:
         logging.debug("Entered lock block in set_temperature")
@@ -272,21 +285,21 @@ def index():
     logging.info("Received %s request to /", request.method)
 
     if request.method == "POST":
-        logging.debug("Form data received: %s", request.form)
+        data = request.get_json()
+        logging.debug("JSON data received: %s", data)
 
-    
         # Handle temperature set request
-        if "set_temperature" in request.form:
+        if "set_temperature" in data:
             logging.info("Received temperature set request")
-            target_temp = int(request.form.get("temperature", 75))
+            target_temp = int(data.get("temperature", 75))
             set_temperature(target_temp)
             current_desired_temp = target_temp
             logging.info("Set temperature to %d°F", target_temp)
-            return redirect("/")
+            return jsonify({"status": "success", "temperature": target_temp})
 
         # Handle mode set request only if manual override is active
-        if "mode" in request.form:
-            selected_mode = request.form.get("mode")
+        if "mode" in data:
+            selected_mode = data.get("mode")
             if selected_mode == "heat":
                 cycle_mode_to_desired(MODE_HEAT)
                 logging.info("Switched mode to HEAT")
@@ -296,21 +309,21 @@ def index():
             else:
                 cycle_mode_to_desired(MODE_OFF)
                 logging.info("Switched mode to OFF")
-            return redirect("/")
+            return jsonify({"status": "success", "mode": selected_mode})
 
         # Handle light button click
-        if "light" in request.form:
+        if "light" in data:
             if time.time() - last_action_time < 45:
                 logging.warning("Attempted to actuate light button within 45 seconds of last action")
             else:
                 actuate_servo(servo_mode, 0, 180)
                 logging.info("Light button actuated")
                 last_action_time = time.time()
-            return redirect("/")
+            return jsonify({"status": "success", "light": "activated"})
 
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
-    #logging.debug("Time since last action: %.1f seconds", time_since_last_action)
+    logging.debug("Time since last action: %.1f seconds", time_since_last_action)
 
     # Read the latest ambient temperature from the file
     read_ambient_temperature()
@@ -330,14 +343,14 @@ def get_time_since_last_action():
     global last_action_time
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
-    #logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
+    logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
     return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
 
 @app.route("/ambient_temperature", methods=["GET"])
 def get_ambient_temperature():
     global ambient_temp
     # Ensure the latest ambient temperature is read
-    #logging.debug("Ambient temperature requested")
+    logging.debug("Ambient temperature requested")
     read_ambient_temperature()
     return jsonify({"ambient_temperature": ambient_temp})
 
@@ -345,13 +358,13 @@ def get_ambient_temperature():
 def get_current_mode():
     global current_mode
     mode_name = ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]
-    #logging.debug("Current mode requested: %s", mode_name)
+    logging.debug("Current mode requested: %s", mode_name)
     return jsonify({"current_mode": mode_name})
 
 @app.route("/set_temperature", methods=["GET"])
 def get_desired_temperature():
     global current_desired_temp
-    #logging.debug("Desired temperature requested: %d°F", current_desired_temp)
+    logging.debug("Desired temperature requested: %d°F", current_desired_temp)
     return jsonify({"desired_temperature": current_desired_temp})
 
 @app.route("/temperature_settings")
