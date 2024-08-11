@@ -8,6 +8,7 @@
     <meta name="referrer" content="no-referrer">
     <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <title>Smart Thermostat with Video Stream</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link to the external CSS -->
     <script src="script.js" defer></script> <!-- Link to the external script -->
 </head>
 <body>
@@ -40,6 +41,6 @@
     <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
 
     <h2>Video Stream</h2>
-    <img id="video" src="{{ url_for('video_feed') }}" style="width:680px; height:420px;">
+    <img id="video" src="{{ url_for('video_feed') }}">
 </body>
 </html>
