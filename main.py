@@ -55,7 +55,7 @@ args = parser.parse_args()
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_video_configuration(main={"size": (1920, 1080), "format": "RGB888"})
+config = picam2.create_video_configuration(main={"size": (680, 420), "format": "RGB888"})
 picam2.configure(config)
 picam2.start()
 
@@ -104,7 +104,7 @@ def generate_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         # Wait for 1 second before capturing the next frame
-        time.sleep(1)
+        time.sleep(2)
 
 @app.route('/video_feed')
 def video_feed():
