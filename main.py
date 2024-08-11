@@ -301,48 +301,11 @@ def log_info():
 
         time.sleep(1)  # Log every second
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
-    global current_mode, last_action_time, current_desired_temp
+    global current_mode, last_action_time
 
-    logging.info("Received %s request to /", request.method)
-
-    if request.method == "POST":
-        data = request.get_json()
-        logging.debug("JSON data received: %s", data)
-
-        # Handle temperature set request
-        if "set_temperature" in data:
-            logging.info("Received temperature set request")
-            target_temp = int(data.get("temperature", 75))
-            set_temperature(target_temp)
-            current_desired_temp = target_temp
-            logging.info("Set temperature to %d°F", target_temp)
-            return jsonify({"status": "success", "temperature": target_temp})
-
-        # Handle mode set request only if manual override is active
-        if "mode" in data:
-            selected_mode = data.get("mode")
-            if selected_mode == "heat":
-                cycle_mode_to_desired(MODE_HEAT)
-                logging.info("Switched mode to HEAT")
-            elif selected_mode == "cool":
-                cycle_mode_to_desired(MODE_COOL)
-                logging.info("Switched mode to COOL")
-            else:
-                cycle_mode_to_desired(MODE_OFF)
-                logging.info("Switched mode to OFF")
-            return jsonify({"status": "success", "mode": selected_mode})
-
-        # Handle light button click
-        if "light" in data:
-            if time.time() - last_action_time < 45:
-                logging.warning("Attempted to actuate light button within 45 seconds of last action")
-            else:
-                actuate_servo(servo_mode, 0, 180)
-                logging.info("Light button actuated")
-                last_action_time = time.time()
-            return jsonify({"status": "success", "light": "activated"})
+    logging.info("Rendering index page")
 
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
@@ -360,6 +323,34 @@ def index():
         mode_options=["OFF", "HEAT", "COOL"],
         time_since_last_action=time_since_last_action
     )
+
+@app.route("/set_temperature", methods=["POST"])
+def set_temperature_route():
+    global current_desired_temp
+    data = request.get_json()
+
+    if not data or 'temperature' not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+
+    target_temp = int(data['temperature'])
+    logging.info("Received temperature set request")
+    set_temperature(target_temp)
+    current_desired_temp = target_temp
+    logging.info("Set temperature to %d°F", target_temp)
+    return jsonify({"status": "success", "temperature": target_temp})
+
+@app.route("/activate_light", methods=["POST"])
+def activate_light_route():
+    global last_action_time
+    if time.time() - last_action_time < 45:
+        logging.warning("Attempted to actuate light button within 45 seconds of last action")
+        return jsonify({"status": "error", "message": "Action too soon"}), 429
+    else:
+        actuate_servo(servo_mode, 0, 180)
+        logging.info("Light button actuated")
+        last_action_time = time.time()
+        return jsonify({"status": "success", "light": "activated"})
+
 
 @app.route("/set_mode", methods=["POST"])
 def set_mode():

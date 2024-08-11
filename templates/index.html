@@ -11,27 +11,26 @@
 </head>
 <body>
     <h1>Smart Thermostat Control</h1>
-    <form method="POST">
-        <button type="submit" name="light">Light</button>
-        <label for="temperature">Desired Temperature:</label>
-        <input type="number" id="desired-temperature" name="temperature" value="" min="50" max="90" readonly>
-        <button type="button" id="increase-temp">Increase</button>
-        <button type="button" id="decrease-temp">Decrease</button>
+    
+    <button type="button" id="light-btn">Light</button>
+    <label for="temperature">Desired Temperature:</label>
+    <input type="number" id="desired-temperature" name="temperature" value="" min="50" max="90" readonly>
+    <button type="button" id="increase-temp">Increase</button>
+    <button type="button" id="decrease-temp">Decrease</button>
 
-        <div>
-            <label>Mode:</label>
-            <label>
-                <input type="radio" name="mode" value="off" {% if current_mode == 0 %}checked{% endif %}> OFF
-            </label>
-            <label>
-                <input type="radio" name="mode" value="heat" {% if current_mode == 1 %}checked{% endif %}> HEAT
-            </label>
-            <label>
-                <input type="radio" name="mode" value="cool" {% if current_mode == 2 %}checked{% endif %}> COOL
-            </label>
-        </div>
-        
-    </form>
+    <div>
+        <label>Mode:</label>
+        <label>
+            <input type="radio" name="mode" value="off" {% if current_mode == 0 %}checked{% endif %}> OFF
+        </label>
+        <label>
+            <input type="radio" name="mode" value="heat" {% if current_mode == 1 %}checked{% endif %}> HEAT
+        </label>
+        <label>
+            <input type="radio" name="mode" value="cool" {% if current_mode == 2 %}checked{% endif %}> COOL
+        </label>
+    </div>
+    
     <p>Heat Temperature Setting: <span id="heat-temperature">{{ current_heat_temp }}°F</span></p>
     <p>Cool Temperature Setting: <span id="cool-temperature">{{ current_cool_temp }}°F</span></p>
     <p>Current Set Temperature: <span id="set-temperature"></span></p>

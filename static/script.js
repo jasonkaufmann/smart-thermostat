@@ -76,14 +76,6 @@ function updateTemperatureSettings() {
 function adjustTemperature(change) {
     currentTargetTemp += change;
     document.getElementById("desired-temperature").value = currentTargetTemp;
-
-    if (tempChangeTimeout) {
-        clearTimeout(tempChangeTimeout);
-    }
-
-    tempChangeTimeout = setTimeout(() => {
-        sendTemperatureUpdate();
-    }, 10000);
 }
 
 // Function to send the temperature update to the server
@@ -98,32 +90,16 @@ function sendTemperatureUpdate() {
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
-            body: JSON.stringify({ set_temperature: true, temperature: currentTargetTemp })
+            body: JSON.stringify({ temperature: currentTargetTemp })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => console.log('Temperature update response:', data))
         .catch(error => console.error('Error sending temperature update:', error));
-    }
-}
-
-// Function to check mode change
-function checkModeChange() {
-    const selectedMode = document.querySelector('input[name="mode"]:checked').value;
-    console.log("Selected Mode: " + selectedMode);
-    console.log("Current Mode: " + currentMode);
-    if (selectedMode !== currentMode) {
-        console.log("Mode changed to: " + selectedMode);
-        fetch("http://10.0.0.54:5000/set_mode", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({ mode: selectedMode })
-        })
-        .then(response => response.json())
-        .then(data => console.log('Mode change response:', data))
-        .catch(error => console.error('Error changing mode:', error));
     }
 }
 
@@ -132,9 +108,17 @@ function activateLight() {
     console.log("Activating light");
     fetch("http://10.0.0.54:5000/activate_light", {
         method: "POST",
-        
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => console.log('Light activation response:', data))
     .catch(error => console.error('Error activating light:', error));
 }
@@ -142,16 +126,11 @@ function activateLight() {
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
     setTimeout(() => {
-        // Add event listeners for temperature buttons
-        document.getElementById('increase-temp').addEventListener('click', () => adjustTemperature(1));
-        document.getElementById('decrease-temp').addEventListener('click', () => adjustTemperature(-1));
         initializeDesiredTemperature();
         setInterval(updateTimeSinceLastAction, 1000);
         setInterval(updateCurrentMode, 1000);
         setInterval(updateDesiredTemperature, 1000);
         setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
-        setInterval(checkModeChange, 10000); // Check for mode changes
-        //setInterval(activateLight, 1800000); // Activate light every 30 minutes
 
         // Get the video feed URL from the data attribute
         const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
@@ -160,6 +139,20 @@ window.onload = function() {
         setInterval(() => {
             const video = document.getElementById('video');
             video.src = videoFeedUrl + '?t=' + new Date().getTime();
-        }, 1000);
+        }, 3000);
+
+        // Add event listeners for temperature buttons
+        document.getElementById('increase-temp').addEventListener('click', () => {
+            adjustTemperature(1);
+            sendTemperatureUpdate();
+        });
+
+        document.getElementById('decrease-temp').addEventListener('click', () => {
+            adjustTemperature(-1);
+            sendTemperatureUpdate();
+        });
+
+        // Add event listener for light button
+        document.getElementById('light-btn').addEventListener('click', activateLight);
     }, 2000); // 2-second delay before initialization
 };
