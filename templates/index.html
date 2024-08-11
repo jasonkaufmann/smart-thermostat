@@ -57,7 +57,7 @@
 
         // Function to update the desired temperature
         function updateDesiredTemperature() {
-            fetch("http://10.0.0.54:5000/set_temperature")
+            fetch("https://10.0.0.54:5000/set_temperature")
                 .then(response => response.json())
                 .then(data => {
                     currentSetTemp = data.desired_temperature;
