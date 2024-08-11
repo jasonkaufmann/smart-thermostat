@@ -40,14 +40,27 @@ function updateTimeSinceLastAction() {
 
 // Function to update the current mode
 function updateCurrentMode() {
-    fetch("http://10.0.0.54:5000/current_mode")
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("current-mode").innerText = data.current_mode;
-            currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
-        })
-        .catch(error => console.error('Error fetching current mode:', error));
+    fetch("http://10.0.0.54:5000/current_mode", {
+        method: 'GET',
+        mode: 'cors', // Ensure CORS mode is specified
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById("current-mode").innerText = data.current_mode;
+        currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
+    })
+    .catch(error => console.error('Error fetching current mode:', error));
 }
+
 
 // Function to update the desired temperature
 function updateDesiredTemperature() {
