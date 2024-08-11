@@ -63,7 +63,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 @app.before_request
-def before_request():
+def handle_options_request():
     if request.method == 'OPTIONS':
         # Allow the GET, POST, and OPTIONS methods
         response = app.make_default_options_response()
@@ -123,19 +123,19 @@ def cycle_mode_to_desired(desired_mode):
             current_mode = MODE_OFF
         logging.debug("Mode changed to: %s", ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode])
 
-def set_temperature(target_temp):
-    """Set the temperature to the target_temp."""
-    logging.info("Function set_temperature called with target_temp: %d", target_temp)
+def set_temperature_logic(target_temp):
+    """Core logic for setting the temperature."""
+    logging.info("Function set_temperature_logic called with target_temp: %d", target_temp)
     global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
 
     # Attempt to acquire lock with a timeout
     acquired = lock.acquire(timeout=5)
     if not acquired:
-        logging.error("Failed to acquire lock in set_temperature")
-        return jsonify({"status": "error", "message": "Could not acquire lock"}), 503
+        logging.error("Failed to acquire lock in set_temperature_logic")
+        return {"status": "error", "message": "Could not acquire lock"}
 
     try:
-        logging.debug("Entered lock block in set_temperature")
+        logging.debug("Entered lock block in set_temperature_logic")
         logging.debug("Current mode: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
         logging.debug("Ambient temperature: %d°F", ambient_temp)
 
@@ -167,7 +167,7 @@ def set_temperature(target_temp):
             logging.info("Adjusting cool temperature to %d°F", current_cool_temp)
         else:
             logging.info("No adjustment needed in OFF mode")
-            return  # No change needed in OFF mode
+            return {"status": "success", "message": "No change needed"}
 
         # Adjust temperature
         if temp_difference > 0:  # Increase temperature
@@ -197,9 +197,17 @@ def set_temperature(target_temp):
             save_settings()
         else:
             logging.info("Simulation mode is on, not saving settings")
+        return {"status": "success"}
     finally:
         lock.release()
-        logging.debug("Lock released in set_temperature")
+        logging.debug("Lock released in set_temperature_logic")
+
+def set_temperature(target_temp):
+    """Wrapper to use within Flask context."""
+    result = set_temperature_logic(target_temp)
+    if result["status"] == "error":
+        return jsonify(result), 503
+    return jsonify(result)
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
@@ -210,7 +218,6 @@ def activate_screen():
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
-    #logging.info("Reading ambient temperature")
     global ambient_temp, current_desired_temp
     ambient_temp_new = None
     try:
@@ -223,7 +230,8 @@ def read_ambient_temperature():
         if ambient_temp_new != ambient_temp:
             ambient_temp = ambient_temp_new
             logging.info("Ambient temperature updated to: %.1f°F", ambient_temp_new)
-            set_temperature(current_desired_temp)  # Adjust temperature based on new ambient
+            # Directly call the logic without Flask's jsonify
+            set_temperature_logic(current_desired_temp)
 
 def save_settings():
     """Save current settings to a file."""
