@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template, request, jsonify, redirect
+from flask import Flask, Response, render_template, request, jsonify
 from picamera2 import Picamera2
 import cv2
 import time
