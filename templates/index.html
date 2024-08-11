@@ -16,6 +16,7 @@
 
         // Function to initialize the desired temperature
         function initializeDesiredTemperature() {
+            //add a delay to ensure the server is running
             fetch("http://10.0.0.54:5000/set_temperature")
                 .then(response => response.json())
                 .then(data => {
@@ -150,19 +151,21 @@
 
         // Initialize the desired temperature and update the page every second
         window.onload = function() {
-            initializeDesiredTemperature();
-            setInterval(updateTimeSinceLastAction, 1000);
-            setInterval(updateCurrentMode, 1000);
-            setInterval(updateDesiredTemperature, 1000);
-            setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
-            setInterval(checkModeChange, 10000); // Check for mode changes
-            //setInterval(activateLight, 1800000); // Activate light every 30 minutes
+            setTimeout(() => {
+                initializeDesiredTemperature();
+                setInterval(updateTimeSinceLastAction, 1000);
+                setInterval(updateCurrentMode, 1000);
+                setInterval(updateDesiredTemperature, 1000);
+                setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
+                setInterval(checkModeChange, 10000); // Check for mode changes
+                //setInterval(activateLight, 1800000); // Activate light every 30 minutes
 
-            // Reload the video feed every 3 seconds
-            setInterval(() => {
-                const video = document.getElementById('video');
-                video.src = "{{ url_for('video_feed') }}" + '?t=' + new Date().getTime();
-            }, 3000);
+                // Reload the video feed every 3 seconds
+                setInterval(() => {
+                    const video = document.getElementById('video');
+                    video.src = "{{ url_for('video_feed') }}" + '?t=' + new Date().getTime();
+                }, 3000);
+            }, 2000); // 2-second delay before initialization
         };
     </script>
 </head>
