@@ -374,7 +374,6 @@ def set_mode():
     if time.time() - last_action_time > 45:
         logging.info("More than 45 seconds since last action, activating screen")
         activate_screen()
-        last_action_time = time.time()
     
     if mode == 'heat':
         cycle_mode_to_desired(MODE_HEAT)
@@ -392,7 +391,6 @@ def set_mode():
         return jsonify({"status": "error", "message": "Invalid mode"}), 400
     
     return jsonify({"status": "success", "mode": mode})
-
 
 @app.route("/time_since_last_action", methods=["GET"])
 def get_time_since_last_action():

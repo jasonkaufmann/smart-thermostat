@@ -27,3 +27,8 @@ img {
     max-width: 100%;
     height: auto;
 }
+
+.video-stream {
+    width: 620px;
+    height: 480px;
+}
