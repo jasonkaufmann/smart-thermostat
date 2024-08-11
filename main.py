@@ -400,7 +400,12 @@ def get_time_since_last_action():
     # Calculate the time since the last action
     time_since_last_action = time.time() - last_action_time
     logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
-    return jsonify({"time_since_last_action": round(time_since_last_action, 1)})
+    response = jsonify({"time_since_last_action": round(time_since_last_action, 1)})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    # Optionally, specify more headers
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    return response
 
 @app.route("/ambient_temperature", methods=["GET"])
 def get_ambient_temperature():
@@ -408,20 +413,26 @@ def get_ambient_temperature():
     # Ensure the latest ambient temperature is read
     logging.debug("Ambient temperature requested")
     read_ambient_temperature()
-    return jsonify({"ambient_temperature": ambient_temp})
+    response = jsonify({"ambient_temperature": ambient_temp})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route("/current_mode", methods=["GET"])
 def get_current_mode():
     global current_mode
     mode_name = ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]
     logging.debug("Current mode requested: %s", mode_name)
-    return jsonify({"current_mode": mode_name})
+    response = jsonify({"current_mode": mode_name})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route("/set_temperature", methods=["GET"])
 def get_desired_temperature():
     global current_desired_temp
     logging.debug("Desired temperature requested: %d°F", current_desired_temp)
-    return jsonify({"desired_temperature": current_desired_temp})
+    response = jsonify({"desired_temperature": current_desired_temp})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route("/temperature_settings")
 def get_temperature_settings():
