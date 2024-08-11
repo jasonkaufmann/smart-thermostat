@@ -142,6 +142,9 @@ function activateLight() {
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
     setTimeout(() => {
+        // Add event listeners for temperature buttons
+        document.getElementById('increase-temp').addEventListener('click', () => adjustTemperature(1));
+        document.getElementById('decrease-temp').addEventListener('click', () => adjustTemperature(-1));
         initializeDesiredTemperature();
         setInterval(updateTimeSinceLastAction, 1000);
         setInterval(updateCurrentMode, 1000);
@@ -157,6 +160,6 @@ window.onload = function() {
         setInterval(() => {
             const video = document.getElementById('video');
             video.src = videoFeedUrl + '?t=' + new Date().getTime();
-        }, 3000);
+        }, 1000);
     }, 2000); // 2-second delay before initialization
 };

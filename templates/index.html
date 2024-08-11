@@ -15,8 +15,8 @@
         <button type="submit" name="light">Light</button>
         <label for="temperature">Desired Temperature:</label>
         <input type="number" id="desired-temperature" name="temperature" value="" min="50" max="90" readonly>
-        <button type="button" onclick="adjustTemperature(1)">Increase</button>
-        <button type="button" onclick="adjustTemperature(-1)">Decrease</button>
+        <button type="button" id="increase-temp">Increase</button>
+        <button type="button" id="decrease-temp">Decrease</button>
 
         <div>
             <label>Mode:</label>
@@ -39,6 +39,6 @@
     <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
 
     <h2>Video Stream</h2>
-    <img id="video" src="{{ url_for('video_feed') }}" data-video-feed-url="{{ url_for('video_feed') }}" class="video-stream">
+    <img id="video" class="video-stream" src="{{ url_for('video_feed') }}" data-video-feed-url="{{ url_for('video_feed') }}">
 </body>
 </html>
