@@ -150,6 +150,9 @@ window.onload = function() {
         setInterval(checkModeChange, 10000); // Check for mode changes
         //setInterval(activateLight, 1800000); // Activate light every 30 minutes
 
+        // Get the video feed URL from the data attribute
+        const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
+
         // Reload the video feed every 3 seconds using the evaluated URL
         setInterval(() => {
             const video = document.getElementById('video');
