@@ -4,16 +4,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://10.0.0.54:5000; img-src 'self'; script-src 'self'; style-src 'self';">
     <meta name="referrer" content="no-referrer">
-    <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <title>Smart Thermostat with Video Stream</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
-    <script>
-        // Set the video URL in a script tag so Jinja can evaluate it
-        const videoFeedUrl = "{{ url_for('video_feed') }}";
-    </script>
 </head>
 <body>
     <h1>Smart Thermostat Control</h1>
