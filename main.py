@@ -210,11 +210,6 @@ def set_temperature_logic(target_temp):
                 actuate_servo(servo_down, 0, 180)
             last_action_time = time.time()  # Update the last action time
             logging.debug("Updated last_action_time after decreasing temperature")
-
-        if not args.simulate:
-            logging.info("Simulation mode is off, saving settings to file")
-            # Save the settings to the file
-            save_settings()
         else:
             logging.info("Simulation mode is on, not saving settings")
         return {"status": "success"}
@@ -251,12 +246,12 @@ def read_ambient_temperature():
             ambient_temp = ambient_temp_new
             logging.info("Ambient temperature updated to: %.1f°F", ambient_temp_new)
             # Directly call the logic without Flask's jsonify
-            set_temperature_logic(current_desired_temp)
+            #set_temperature_logic(current_desired_temp)
 
 def save_settings():
     """Save current settings to a file."""
     logging.info("Saving settings to file")
-    global current_heat_temp, current_cool_temp, current_mode
+    global current_heat_temp, current_cool_temp, current_mode, current_desired_temp
     try:
         with open("settings.txt", "w") as file:
             file.write(f"{current_heat_temp}\n")
@@ -295,7 +290,7 @@ def log_info():
         with lock:
             time_since_last_action = time.time() - last_action_time
             # Read the latest ambient temperature from the file
-            read_ambient_temperature()
+            #read_ambient_temperature()
 
             with open("info.txt", "w") as file:
                 file.write(f"Time since last action: {time_since_last_action:.1f} seconds\n")
@@ -317,7 +312,7 @@ def index():
     logging.debug("Time since last action: %.1f seconds", time_since_last_action)
 
     # Read the latest ambient temperature from the file
-    read_ambient_temperature()
+    #read_ambient_temperature()
 
     return render_template(
         "index.html",
@@ -342,6 +337,10 @@ def set_temperature_route():
     set_temperature(target_temp)
     current_desired_temp = target_temp
     logging.info("Set temperature to %d°F", target_temp)
+    if not args.simulate:
+        logging.info("Simulation mode is off, saving settings to file")
+        # Save the settings to the file
+        save_settings()
     return jsonify({"status": "success", "temperature": target_temp})
 
 @app.route("/activate_light", methods=["POST"])
