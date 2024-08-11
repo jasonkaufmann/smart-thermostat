@@ -2,7 +2,6 @@
 
 let currentTargetTemp;
 let currentSetTemp;
-let tempChangeTimeout;
 let currentMode;
 
 // Function to initialize the desired temperature
@@ -103,6 +102,22 @@ function sendTemperatureUpdate() {
     }
 }
 
+// Debounce function to limit the rate of function execution
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+}
+
+// Debounced version of sendTemperatureUpdate to control frequency
+const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 5000);
+
 // Function to activate the light
 function activateLight() {
     console.log("Activating light");
@@ -144,12 +159,12 @@ window.onload = function() {
         // Add event listeners for temperature buttons
         document.getElementById('increase-temp').addEventListener('click', () => {
             adjustTemperature(1);
-            sendTemperatureUpdate();
+            debouncedSendTemperatureUpdate();
         });
 
         document.getElementById('decrease-temp').addEventListener('click', () => {
             adjustTemperature(-1);
-            sendTemperatureUpdate();
+            debouncedSendTemperatureUpdate();
         });
 
         // Add event listener for light button
