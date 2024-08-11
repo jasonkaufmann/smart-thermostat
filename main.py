@@ -361,6 +361,35 @@ def index():
         time_since_last_action=time_since_last_action
     )
 
+@app.route("/set_mode", methods=["POST"])
+def set_mode():
+    global current_mode
+    data = request.get_json()
+    
+    if not data or 'mode' not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    
+    mode = data['mode'].lower()
+    
+    if mode == 'heat':
+        cycle_mode_to_desired(MODE_HEAT)
+        logging.info("Switched mode to HEAT")
+        current_mode = MODE_HEAT
+    elif mode == 'cool':
+        cycle_mode_to_desired(MODE_COOL)
+        logging.info("Switched mode to COOL")
+        current_mode = MODE_COOL
+    elif mode == 'off':
+        cycle_mode_to_desired(MODE_OFF)
+        logging.info("Switched mode to OFF")
+        current_mode = MODE_OFF
+    else:
+        return jsonify({"status": "error", "message": "Invalid mode"}), 400
+    
+    return jsonify({"status": "success", "mode": mode})
+
+
+
 @app.route("/time_since_last_action", methods=["GET"])
 def get_time_since_last_action():
     global last_action_time
