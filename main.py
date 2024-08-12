@@ -86,17 +86,17 @@ threading.Thread(target=capture_frames, daemon=True).start()
 
 @app.route('/video_feed')
 def video_feed():
-    def generate():
-        while True:
-            with lock:
-                if latest_frame is None:
-                    continue
-                frame = latest_frame
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            time.sleep(1)  # Adjust the sleep time to control the streaming rate
+    with lock:
+        if latest_frame is None:
+            return Response(status=404)  # Return a 404 if no frame is available
+        frame = latest_frame
 
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    # Return the current frame as a JPEG image
+    return Response(
+        frame,
+        mimetype='image/jpeg',
+        headers={'Content-Type': 'image/jpeg'}
+    )
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""

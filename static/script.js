@@ -269,39 +269,30 @@ function reloadPageIfNeeded(error) {
 function initializeVideoFeed() {
     console.log("Initializing video feed");
 
-    setTimeout(() => {
-        const video = document.getElementById('video');
-        const videoFeedUrl = video.dataset.videoFeedUrl;
-        console.log("Video feed URL:", videoFeedUrl);
+    const video = document.getElementById('video');
+    const videoFeedUrl = video.dataset.videoFeedUrl;
+    console.log("Video feed URL:", videoFeedUrl);
 
-        let loading = false; // Flag to prevent multiple simultaneous loads
-
-        // Function to load the next video frame
-        function loadNextFrame() {
-            if (loading) return; // Prevent loading if already in progress
-            loading = true;
-            video.src = videoFeedUrl + '?t=' + new Date().getTime();
-        }
-
-        // Set up the onload event to load the next image
+    // Function to load the next video frame
+    function loadNextFrame() {
         video.onload = () => {
             console.log("Video frame loaded");
-            loading = false; // Reset flag after successful load
-            loadNextFrame(); // Immediately request the next frame after loading the current one
+            setTimeout(loadNextFrame, 5000); // Load the next frame after 1 second
         };
 
-        // Set up the onerror event to handle loading errors
         video.onerror = () => {
             console.error("Failed to load video frame, retrying...");
-            loading = false; // Reset flag to allow retry
             setTimeout(loadNextFrame, 1000); // Retry loading the frame after 1 second
         };
 
-        // Load the first frame to start the process
-        loadNextFrame();
+        // Update the video source to fetch the latest frame
+        video.src = videoFeedUrl + '?t=' + new Date().getTime();
+    }
 
-    }, 5000); // 5-second delay to start video feed
+    // Load the first frame to start the process
+    loadNextFrame();
 }
+
 
 
 
