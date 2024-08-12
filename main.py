@@ -451,6 +451,11 @@ def activate_light():
         last_action_time = time.time()
     return jsonify({"status": "success"})
 
+# Health check endpoint
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "ok"}), 200
+
 def main():
     try:
         # Load settings from the file at startup
