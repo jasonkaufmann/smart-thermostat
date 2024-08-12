@@ -266,7 +266,6 @@ function reloadPageIfNeeded(error) {
 }
 
 // Function to initialize video feed
-// Function to initialize video feed
 function initializeVideoFeed() {
     console.log("Initializing video feed");
 
@@ -286,11 +285,18 @@ function initializeVideoFeed() {
             loadNextFrame(); // Immediately request the next frame after loading the current one
         };
 
+        // Set up the onerror event to handle loading errors
+        video.onerror = () => {
+            console.error("Failed to load video frame, retrying...");
+            setTimeout(loadNextFrame, 1000); // Retry loading the frame after 1 second
+        };
+
         // Load the first frame to start the process
         loadNextFrame();
 
     }, 5000); // 5-second delay to start video feed
 }
+
 
 
 // Initialize the desired temperature and update the page every second
