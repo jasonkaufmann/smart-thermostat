@@ -274,20 +274,26 @@ function initializeVideoFeed() {
         const videoFeedUrl = video.dataset.videoFeedUrl;
         console.log("Video feed URL:", videoFeedUrl);
 
+        let loading = false; // Flag to prevent multiple simultaneous loads
+
         // Function to load the next video frame
         function loadNextFrame() {
+            if (loading) return; // Prevent loading if already in progress
+            loading = true;
             video.src = videoFeedUrl + '?t=' + new Date().getTime();
         }
 
         // Set up the onload event to load the next image
         video.onload = () => {
             console.log("Video frame loaded");
+            loading = false; // Reset flag after successful load
             loadNextFrame(); // Immediately request the next frame after loading the current one
         };
 
         // Set up the onerror event to handle loading errors
         video.onerror = () => {
             console.error("Failed to load video frame, retrying...");
+            loading = false; // Reset flag to allow retry
             setTimeout(loadNextFrame, 1000); // Retry loading the frame after 1 second
         };
 
