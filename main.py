@@ -95,21 +95,21 @@ def handle_options_request():
 
         return response
 
-def generate_frames():
-    while True:
-        # Capture frame-by-frame
-        frame = picam2.capture_array()
-        # Convert RGB to BGR
-        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        # Encode the frame in JPEG format
-        ret, buffer = cv2.imencode('.jpg', frame_bgr)
-        # Convert the frame to bytes
-        frame_bytes = buffer.tobytes()
-        # Yield the frame in MJPEG format
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        # Wait for 1 second before capturing the next frame
-        time.sleep(5)
+# def generate_frames():
+#     while True:
+#         # Capture frame-by-frame
+#         frame = picam2.capture_array()
+#         # Convert RGB to BGR
+#         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+#         # Encode the frame in JPEG format
+#         ret, buffer = cv2.imencode('.jpg', frame_bgr)
+#         # Convert the frame to bytes
+#         frame_bytes = buffer.tobytes()
+#         # Yield the frame in MJPEG format
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+#         # Wait for 1 second before capturing the next frame
+#         time.sleep(5)
 
 # @app.route('/video_feed')
 # def video_feed():

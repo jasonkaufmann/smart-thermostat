@@ -267,15 +267,15 @@ window.onload = function() {
     setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
 
     // Get the video feed URL from the data attribute
-    const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
-    console.log("Video feed URL:", videoFeedUrl);
+    //const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
+    //console.log("Video feed URL:", videoFeedUrl);
 
     // Reload the video feed every 3 seconds using the evaluated URL
-    setInterval(() => {
-        console.log("Reloading video feed");
-        const video = document.getElementById('video');
-        video.src = videoFeedUrl + '?t=' + new Date().getTime();
-    }, 3000);
+    //setInterval(() => {
+    //    console.log("Reloading video feed");
+    //    const video = document.getElementById('video');
+    //    video.src = videoFeedUrl + '?t=' + new Date().getTime();
+    //}, 3000);
 
     // Add event listeners for temperature buttons
     document.getElementById('increase-temp').addEventListener('click', () => {
