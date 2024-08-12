@@ -2,18 +2,28 @@ let currentTargetTemp;
 let currentSetTemp;
 let currentMode;
 
+// Utility function to fetch with a timeout
+function fetchWithTimeout(url, options, timeout = 400) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    return fetch(url, {
+        ...options,
+        signal: controller.signal
+    }).finally(() => clearTimeout(id));
+}
+
 // Function to check server readiness
 function checkServerHealth() {
     console.log("Checking server health");
 
-    fetch("http://10.0.0.54:5000/health", {
+    fetchWithTimeout("http://10.0.0.54:5000/health", {
         method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
+        mode: 'cors',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for server health check");
         if (!response.ok) {
@@ -36,14 +46,14 @@ function checkServerHealth() {
 function initializeDesiredTemperature() {
     console.log("Initializing desired temperature");
 
-    fetch("http://10.0.0.54:5000/set_temperature", {
+    fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
         method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
+        mode: 'cors',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for set_temperature");
         if (!response.ok) {
@@ -66,14 +76,14 @@ function initializeDesiredTemperature() {
 function updateTimeSinceLastAction() {
     console.log("Updating time since last action");
 
-    fetch("http://10.0.0.54:5000/time_since_last_action", {
+    fetchWithTimeout("http://10.0.0.54:5000/time_since_last_action", {
         method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
+        mode: 'cors',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for time_since_last_action");
         if (!response.ok) {
@@ -93,14 +103,14 @@ function updateTimeSinceLastAction() {
 function updateCurrentMode() {
     console.log("Updating current mode");
 
-    fetch("http://10.0.0.54:5000/current_mode", {
+    fetchWithTimeout("http://10.0.0.54:5000/current_mode", {
         method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
+        mode: 'cors',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for current_mode");
         if (!response.ok) {
@@ -121,14 +131,14 @@ function updateCurrentMode() {
 function updateDesiredTemperature() {
     console.log("Updating desired temperature");
 
-    fetch("http://10.0.0.54:5000/set_temperature", {
+    fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
         method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
+        mode: 'cors',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for set_temperature");
         if (!response.ok) {
@@ -149,14 +159,14 @@ function updateDesiredTemperature() {
 function updateTemperatureSettings() {
     console.log("Updating temperature settings");
 
-    fetch("http://10.0.0.54:5000/temperature_settings", {
+    fetchWithTimeout("http://10.0.0.54:5000/temperature_settings", {
         method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
+        mode: 'cors',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for temperature_settings");
         if (!response.ok) {
@@ -187,14 +197,14 @@ function sendTemperatureUpdate() {
     console.log("Current Target Temp:", currentTargetTemp);
 
     if (currentTargetTemp !== currentSetTemp) {
-        fetch("http://10.0.0.54:5000/set_temperature", {
+        fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             body: JSON.stringify({ temperature: currentTargetTemp })
-        })
+        }, 400)
         .then(response => {
             console.log("Received response for temperature update");
             if (!response.ok) {
@@ -228,13 +238,13 @@ const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 5000);
 function activateLight() {
     console.log("Activating light");
 
-    fetch("http://10.0.0.54:5000/activate_light", {
+    fetchWithTimeout("http://10.0.0.54:5000/activate_light", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
-    })
+    }, 400)
     .then(response => {
         console.log("Received response for light activation");
         if (!response.ok) {
