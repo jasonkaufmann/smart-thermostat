@@ -8,13 +8,18 @@
     <title>Smart Thermostat with Video Stream</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <style>
+        .yellow-bg {
+            background-color: yellow;
+        }
+    </style>
 </head>
 <body>
     <div class="control-panel">
         <h1>Smart Thermostat Control</h1>
 
         <div class="radio-group">
-            <button type="button" id="light-btn">Light</button>
+            <button type="button" id="light-btn" onclick="changeButtonColor()">Light</button>
         </div>
 
         <label for="temperature">Desired Temperature:</label>

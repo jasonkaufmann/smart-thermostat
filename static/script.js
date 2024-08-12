@@ -265,6 +265,18 @@ function reloadPageIfNeeded(error) {
     }, 1000); // Delay for 1 second before reloading
 }
 
+function changeButtonColor() {
+    const lightButton = document.getElementById('light-btn');
+    
+    // Add the yellow background class
+    lightButton.classList.add('yellow-bg');
+
+    // Remove the yellow background class after 3 seconds
+    setTimeout(() => {
+        lightButton.classList.remove('yellow-bg');
+    }, 3000);
+}
+
 // Function to initialize video feed
 function initializeVideoFeed() {
     console.log("Initializing video feed");
