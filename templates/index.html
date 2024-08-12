@@ -15,7 +15,7 @@
 
     <script>
         function testCORS() {
-            fetch('http://10.0.0.54:5000/')
+            fetch('http://10.0.0.54:5001/')
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('output').innerText = data.message;
@@ -24,7 +24,7 @@
         }
 
         function fetchRandomNumber() {
-            fetch('http://10.0.0.54:5000/random-number')
+            fetch('http://10.0.0.54:5001/random-number')
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('randomNumber').innerText = `Random Number: ${data.number}`;
