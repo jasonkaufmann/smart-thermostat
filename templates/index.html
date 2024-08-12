@@ -15,16 +15,16 @@
 
     <script>
         function testCORS() {
-            fetch('http://10.0.0.54:5001/')
+            fetch('http://10.0.0.54:5001/')  // Fetch greeting from Flask
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('output').innerText = data.message;
+                    document.getElementById('output').innerText = `Message: ${data.message}`;
                 })
                 .catch(error => console.error('Error:', error));
         }
 
         function fetchRandomNumber() {
-            fetch('http://10.0.0.54:5001/random-number')
+            fetch('http://10.0.0.54:5001/random-number')  // Fetch random number from Flask
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('randomNumber').innerText = `Random Number: ${data.number}`;
