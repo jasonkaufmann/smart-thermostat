@@ -48,6 +48,9 @@ screen_active = False  # Track whether the screen is active
 lock = threading.Lock()
 current_desired_temp = None
 
+# Global variable to store the latest frame
+latest_frame = None
+
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Smart Thermostat Control")
 parser.add_argument('--simulate', action='store_true', help='Run in simulation mode (no servo actuation)')
@@ -63,39 +66,8 @@ app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
 CORS(app, resources={r"/*": {"origins": ["http://localhost:5000"]}})
 
-
-# Middleware to add security headers
-@app.after_request
-def add_security_headers(response):
-    # Added frame-ancestors directive for security
-    response.headers['Content-Security-Policy'] = (
-        "default-src 'self'; "
-        "script-src 'self'; "
-        "style-src 'self'; "
-        "img-src 'self'; "
-        "connect-src 'self' http://10.0.0.54:5000; "
-        "frame-ancestors 'none';"  # Prevents clickjacking attacks
-    )
-
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    return response
-
-@app.before_request
-def handle_options_request():
-    if request.method == 'OPTIONS':
-        # Allow the GET, POST, and OPTIONS methods
-        response = app.make_default_options_response()
-        headers = response.headers
-
-        headers['Access-Control-Allow-Origin'] = '*'
-        headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-        headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-
-        return response
-
-def generate_frames():
+def capture_frames():
+    global latest_frame
     while True:
         # Capture frame-by-frame
         frame = picam2.capture_array()
@@ -103,18 +75,28 @@ def generate_frames():
         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         # Encode the frame in JPEG format
         ret, buffer = cv2.imencode('.jpg', frame_bgr)
-        # Convert the frame to bytes
-        frame_bytes = buffer.tobytes()
-        # Yield the frame in MJPEG format
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        # Wait for 1 second before capturing the next frame
-        time.sleep(15)
+        # Update the latest frame with thread safety
+        with lock:
+            latest_frame = buffer.tobytes()
+        # Wait for a short time before capturing the next frame
+        time.sleep(1)  # Adjust the sleep time as needed
+
+# Start the frame capture thread
+threading.Thread(target=capture_frames, daemon=True).start()
 
 @app.route('/video_feed')
 def video_feed():
-    # Return a response with the JPEG frames
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    def generate():
+        while True:
+            with lock:
+                if latest_frame is None:
+                    continue
+                frame = latest_frame
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            time.sleep(1)  # Adjust the sleep time to control the streaming rate
+
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
