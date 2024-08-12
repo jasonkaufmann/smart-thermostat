@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import random
 
@@ -7,7 +7,8 @@ CORS(app)  # Enable CORS for all routes
 
 @app.route('/')
 def home():
-    return jsonify(message='Hello from Flask!')
+    # Serve the index.html file
+    return render_template('index.html')
 
 @app.route('/random-number')
 def random_number():
@@ -15,5 +16,4 @@ def random_number():
     return jsonify(number=number)
 
 if __name__ == '__main__':
-    app.debug = True  # Enable auto-reload  
     app.run(host='0.0.0.0', port=5001)  # Run on port 5001
