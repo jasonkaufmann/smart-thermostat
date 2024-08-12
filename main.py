@@ -53,11 +53,11 @@ parser = argparse.ArgumentParser(description="Smart Thermostat Control")
 parser.add_argument('--simulate', action='store_true', help='Run in simulation mode (no servo actuation)')
 args = parser.parse_args()
 
-# # Initialize the camera
-# picam2 = Picamera2()
-# config = picam2.create_video_configuration(main={"size": (680, 420), "format": "RGB888"})
-# picam2.configure(config)
-# picam2.start()
+# Initialize the camera
+picam2 = Picamera2()
+config = picam2.create_video_configuration(main={"size": (680, 420), "format": "RGB888"})
+picam2.configure(config)
+picam2.start()
 
 app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
@@ -95,26 +95,26 @@ def handle_options_request():
 
         return response
 
-# def generate_frames():
-#     while True:
-#         # Capture frame-by-frame
-#         frame = picam2.capture_array()
-#         # Convert RGB to BGR
-#         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-#         # Encode the frame in JPEG format
-#         ret, buffer = cv2.imencode('.jpg', frame_bgr)
-#         # Convert the frame to bytes
-#         frame_bytes = buffer.tobytes()
-#         # Yield the frame in MJPEG format
-#         yield (b'--frame\r\n'
-#                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-#         # Wait for 1 second before capturing the next frame
-#         time.sleep(5)
+def generate_frames():
+    while True:
+        # Capture frame-by-frame
+        frame = picam2.capture_array()
+        # Convert RGB to BGR
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Encode the frame in JPEG format
+        ret, buffer = cv2.imencode('.jpg', frame_bgr)
+        # Convert the frame to bytes
+        frame_bytes = buffer.tobytes()
+        # Yield the frame in MJPEG format
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        # Wait for 1 second before capturing the next frame
+        time.sleep(5)
 
-# @app.route('/video_feed')
-# def video_feed():
-#     # Return a response with the JPEG frames
-#     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/video_feed')
+def video_feed():
+    # Return a response with the JPEG frames
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
