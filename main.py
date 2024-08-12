@@ -469,7 +469,7 @@ def main():
 
         # Start Flask web server
         logging.info("Starting Flask web server")
-        app.debug = False
+        app.debug = True
         app.run(host="0.0.0.0", port=5000)
 
     finally:
