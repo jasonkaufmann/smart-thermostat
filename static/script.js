@@ -274,13 +274,24 @@ function initializeVideoFeed() {
         const videoFeedUrl = video.dataset.videoFeedUrl;
         console.log("Video feed URL:", videoFeedUrl);
 
-        // Reload the video feed every 10 seconds using the evaluated URL
-        setInterval(() => {
-            console.log("Reloading video feed");
+        // Function to reload the video feed image
+        function reloadVideoFeed() {
+            console.log("Loading new video frame");
             video.src = videoFeedUrl + '?t=' + new Date().getTime();
-        }, 10000); // Adjust interval if needed
+        }
+
+        // Set up the onload event to load the next image
+        video.onload = () => {
+            console.log("Video frame loaded");
+            setTimeout(reloadVideoFeed, 1000); // Load next frame after 1 second delay
+        };
+
+        // Load the first frame to start the process
+        reloadVideoFeed();
+
     }, 5000); // 5-second delay to start video feed
 }
+
 
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
