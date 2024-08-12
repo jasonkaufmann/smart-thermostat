@@ -3,7 +3,7 @@ let currentSetTemp;
 let currentMode;
 
 // Utility function to fetch with a timeout
-function fetchWithTimeout(url, options, timeout = 400) {
+function fetchWithTimeout(url, options, timeout = 2000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     return fetch(url, {
