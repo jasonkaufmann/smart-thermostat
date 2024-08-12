@@ -23,7 +23,7 @@ function checkServerHealth() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 400)
+    }, 2000)
     .then(response => {
         console.log("Received response for server health check");
         if (!response.ok) {
@@ -53,7 +53,7 @@ function initializeDesiredTemperature() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 400)
+    }, 2000)
     .then(response => {
         console.log("Received response for set_temperature");
         if (!response.ok) {
@@ -83,7 +83,7 @@ function updateTimeSinceLastAction() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 400)
+    }, 2000)
     .then(response => {
         console.log("Received response for time_since_last_action");
         if (!response.ok) {
@@ -110,7 +110,7 @@ function updateCurrentMode() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 400)
+    }, 2000)
     .then(response => {
         console.log("Received response for current_mode");
         if (!response.ok) {
@@ -166,7 +166,7 @@ function updateTemperatureSettings() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 400)
+    }, 2000)
     .then(response => {
         console.log("Received response for temperature_settings");
         if (!response.ok) {
@@ -244,7 +244,7 @@ function activateLight() {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
-    }, 400)
+    }, 2000)
     .then(response => {
         console.log("Received response for light activation");
         if (!response.ok) {
