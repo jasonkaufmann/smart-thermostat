@@ -289,7 +289,7 @@ function initializeVideoFeed() {
     function loadNextFrame() {
         video.onload = () => {
             console.log("Video frame loaded");
-            setTimeout(loadNextFrame, 5000); // Load the next frame after 1 second
+            setTimeout(loadNextFrame, 1000); // Load the next frame after 1 second
         };
 
         video.onerror = () => {

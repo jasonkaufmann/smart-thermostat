@@ -79,7 +79,7 @@ def capture_frames():
         with lock:
             latest_frame = buffer.tobytes()
         # Wait for a short time before capturing the next frame
-        time.sleep(5)  # Adjust the sleep time as needed
+        time.sleep(1)  # Adjust the sleep time as needed
 
 # Start the frame capture thread
 threading.Thread(target=capture_frames, daemon=True).start()

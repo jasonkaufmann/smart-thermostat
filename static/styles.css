@@ -79,3 +79,8 @@ img {
     max-width: 100%;
     height: auto;
 }
+
+/* Add this class to change button color */
+.yellow-bg {
+    background-color: yellow !important;
+}
