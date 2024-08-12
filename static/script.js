@@ -58,7 +58,6 @@ function initializeDesiredTemperature() {
         currentTargetTemp = currentSetTemp;
         document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
         document.getElementById("desired-temperature").value = currentSetTemp;
-        initializeVideoFeed(); // Initialize video feed after temperature setup
     })
     .catch(error => reloadPageIfNeeded(error));
 }
@@ -299,4 +298,6 @@ window.onload = function() {
 
     // Add event listener for light button
     document.getElementById('light-btn').addEventListener('click', activateLight);
+
+    initializeVideoFeed(); // Initialize video feed after temperature setup
 };
