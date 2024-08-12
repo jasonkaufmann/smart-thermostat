@@ -266,6 +266,7 @@ function reloadPageIfNeeded(error) {
 }
 
 // Function to initialize video feed
+// Function to initialize video feed
 function initializeVideoFeed() {
     console.log("Initializing video feed");
 
@@ -274,20 +275,19 @@ function initializeVideoFeed() {
         const videoFeedUrl = video.dataset.videoFeedUrl;
         console.log("Video feed URL:", videoFeedUrl);
 
-        // Function to reload the video feed image
-        function reloadVideoFeed() {
-            console.log("Loading new video frame");
+        // Function to load the next video frame
+        function loadNextFrame() {
             video.src = videoFeedUrl + '?t=' + new Date().getTime();
         }
 
         // Set up the onload event to load the next image
         video.onload = () => {
             console.log("Video frame loaded");
-            setTimeout(reloadVideoFeed, 1000); // Load next frame after 1 second delay
+            loadNextFrame(); // Immediately request the next frame after loading the current one
         };
 
         // Load the first frame to start the process
-        reloadVideoFeed();
+        loadNextFrame();
 
     }, 5000); // 5-second delay to start video feed
 }
