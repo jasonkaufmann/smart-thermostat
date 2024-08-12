@@ -2,6 +2,36 @@ let currentTargetTemp;
 let currentSetTemp;
 let currentMode;
 
+// Function to check server readiness
+function checkServerHealth() {
+    console.log("Checking server health");
+
+    fetch("http://10.0.0.54:5000/health", {
+        method: 'GET',
+        mode: 'cors', // Ensure CORS mode is specified
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log("Received response for server health check");
+        if (!response.ok) {
+            console.error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Server is healthy, initializing desired temperature");
+        initializeDesiredTemperature(); // Proceed with initialization
+    })
+    .catch(error => {
+        console.error('Server health check failed, retrying:', error);
+        setTimeout(checkServerHealth, 2000); // Retry after 2 seconds
+    });
+}
+
 // Function to initialize the desired temperature
 function initializeDesiredTemperature() {
     console.log("Initializing desired temperature");
@@ -29,31 +59,7 @@ function initializeDesiredTemperature() {
         document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
         document.getElementById("desired-temperature").value = currentSetTemp;
     })
-    .catch(error => console.error('Error fetching initial temperature:', error));
-
-    fetch("http://10.0.0.54:5000/current_mode", {
-        method: 'GET',
-        mode: 'cors', // Ensure CORS mode is specified
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => {
-        console.log("Received response for current_mode");
-        if (!response.ok) {
-            console.error(`HTTP error! status: ${response.status}`);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log("Parsed JSON for current_mode:", data);
-        currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
-        // Set the radio button to the current mode
-        document.querySelector(`input[name="mode"][value="${currentMode}"]`).checked = true;
-    })
-    .catch(error => console.error('Error fetching current mode:', error));
+    .catch(error => reloadPageIfNeeded(error));
 }
 
 // Function to update the time since last action
@@ -241,12 +247,20 @@ function activateLight() {
     .catch(error => console.error('Error activating light:', error));
 }
 
+// Function to reload the page if initial requests fail
+function reloadPageIfNeeded(error) {
+    console.error('Initial request failed, reloading page:', error);
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000); // Delay for 1 second before reloading
+}
+
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
     console.log("Window loaded, starting initialization");
 
-    console.log("Initializing...");
-    initializeDesiredTemperature();
+    checkServerHealth(); // Start with a server health check
+
     setInterval(updateTimeSinceLastAction, 1000);
     setInterval(updateCurrentMode, 1000);
     setInterval(updateDesiredTemperature, 1000);
