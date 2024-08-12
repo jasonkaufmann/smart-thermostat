@@ -111,10 +111,10 @@ def generate_frames():
         # Wait for 1 second before capturing the next frame
         time.sleep(5)
 
-@app.route('/video_feed')
-def video_feed():
-    # Return a response with the JPEG frames
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+# @app.route('/video_feed')
+# def video_feed():
+#     # Return a response with the JPEG frames
+#     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
