@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Smart Thermostat with Video Stream</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+<body>
+    <h1>Smart Thermostat Control</h1>
+    
+    <button type="button" id="light-btn">Light</button>
+    <label for="temperature">Desired Temperature:</label>
+    <input type="number" id="desired-temperature" name="temperature" value="" min="50" max="90" readonly>
+    <button type="button" id="increase-temp">Increase</button>
+    <button type="button" id="decrease-temp">Decrease</button>
+
+    <div>
+        <label>Mode:</label>
+        <label>
+            <input type="radio" name="mode" value="off" {% if current_mode == 0 %}checked{% endif %}> OFF
+        </label>
+        <label>
+            <input type="radio" name="mode" value="heat" {% if current_mode == 1 %}checked{% endif %}> HEAT
+        </label>
+        <label>
+            <input type="radio" name="mode" value="cool" {% if current_mode == 2 %}checked{% endif %}> COOL
+        </label>
+    </div>
+    
+    <p>Heat Temperature Setting: <span id="heat-temperature">{{ current_heat_temp }}°F</span></p>
+    <p>Cool Temperature Setting: <span id="cool-temperature">{{ current_cool_temp }}°F</span></p>
+    <p>Current Set Temperature: <span id="set-temperature"></span></p>
+    <p>Current Mode: <span id="current-mode">{{ mode_options[current_mode] }}</span></p>
+    <p>Time Since Last Action: <span id="time-since-last-action">{{ time_since_last_action | round(1) }} seconds</span></p>
+
+    <h2>Video Stream</h2>
+    <img id="video" class="video-stream" src="{{ url_for('video_feed') }}" data-video-feed-url="{{ url_for('video_feed') }}" crossorigin="anonymous">
+</body>
+</html>
