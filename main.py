@@ -64,7 +64,7 @@ picam2.start()
 
 app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
-CORS(app, resources={r"/*": {"origins": ["http://localhost:5000"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "http://thermostat.local:5000"]}})
 
 def capture_frames():
     global latest_frame
