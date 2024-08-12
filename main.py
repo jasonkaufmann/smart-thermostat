@@ -53,11 +53,11 @@ parser = argparse.ArgumentParser(description="Smart Thermostat Control")
 parser.add_argument('--simulate', action='store_true', help='Run in simulation mode (no servo actuation)')
 args = parser.parse_args()
 
-# Initialize the camera
-picam2 = Picamera2()
-config = picam2.create_video_configuration(main={"size": (680, 420), "format": "RGB888"})
-picam2.configure(config)
-picam2.start()
+# # Initialize the camera
+# picam2 = Picamera2()
+# config = picam2.create_video_configuration(main={"size": (680, 420), "format": "RGB888"})
+# picam2.configure(config)
+# picam2.start()
 
 app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
