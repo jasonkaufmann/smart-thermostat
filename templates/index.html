@@ -7,14 +7,13 @@
 </head>
 <body>
     <h1>CORS Test Page</h1>
-    <button onclick="testCORS()">Fetch Greeting</button>
     <div id="output"></div>
 
     <h2>Random Number</h2>
     <div id="randomNumber"></div>
 
     <script>
-        function testCORS() {
+        function fetchGreeting() {
             fetch('http://10.0.0.54:5001/')  // Fetch greeting from Flask
                 .then(response => response.json())
                 .then(data => {
@@ -32,11 +31,13 @@
                 .catch(error => console.error('Error:', error));
         }
 
-        // Fetch a random number every 5 seconds
-        setInterval(fetchRandomNumber, 5000);
-
-        // Initial fetch on page load
-        fetchRandomNumber();
+        // Fetch greeting and random number on page load
+        window.onload = function() {
+            fetchGreeting();
+            fetchRandomNumber();
+            // Fetch a new random number every 5 seconds
+            setInterval(fetchRandomNumber, 5000);
+        };
     </script>
 </body>
 </html>
