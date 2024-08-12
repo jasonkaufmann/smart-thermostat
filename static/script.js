@@ -58,6 +58,7 @@ function initializeDesiredTemperature() {
         currentTargetTemp = currentSetTemp;
         document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
         document.getElementById("desired-temperature").value = currentSetTemp;
+        initializeVideoFeed(); // Initialize video feed after temperature setup
     })
     .catch(error => reloadPageIfNeeded(error));
 }
@@ -255,6 +256,23 @@ function reloadPageIfNeeded(error) {
     }, 1000); // Delay for 1 second before reloading
 }
 
+// Function to initialize video feed
+function initializeVideoFeed() {
+    console.log("Initializing video feed");
+
+    setTimeout(() => {
+        const video = document.getElementById('video');
+        const videoFeedUrl = video.dataset.videoFeedUrl;
+        console.log("Video feed URL:", videoFeedUrl);
+
+        // Reload the video feed every 10 seconds using the evaluated URL
+        setInterval(() => {
+            console.log("Reloading video feed");
+            video.src = videoFeedUrl + '?t=' + new Date().getTime();
+        }, 10000); // Adjust interval if needed
+    }, 5000); // 5-second delay to start video feed
+}
+
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
     console.log("Window loaded, starting initialization");
@@ -265,17 +283,6 @@ window.onload = function() {
     setInterval(updateCurrentMode, 1000);
     setInterval(updateDesiredTemperature, 1000);
     setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
-
-    // Get the video feed URL from the data attribute
-    //const videoFeedUrl = document.getElementById('video').dataset.videoFeedUrl;
-    //console.log("Video feed URL:", videoFeedUrl);
-
-    // Reload the video feed every 3 seconds using the evaluated URL
-    //setInterval(() => {
-    //    console.log("Reloading video feed");
-    //    const video = document.getElementById('video');
-    //    video.src = videoFeedUrl + '?t=' + new Date().getTime();
-    //}, 3000);
 
     // Add event listeners for temperature buttons
     document.getElementById('increase-temp').addEventListener('click', () => {

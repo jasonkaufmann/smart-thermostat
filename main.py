@@ -55,7 +55,7 @@ args = parser.parse_args()
 
 # Initialize the camera
 picam2 = Picamera2()
-config = picam2.create_video_configuration(main={"size": (680, 420), "format": "RGB888"})
+config = picam2.create_video_configuration(main={"size": (320, 240), "format": "RGB888"})
 picam2.configure(config)
 picam2.start()
 
