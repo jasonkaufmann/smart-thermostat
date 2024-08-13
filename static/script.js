@@ -339,9 +339,9 @@ window.onload = function() {
     checkServerHealth(); // Start with a server health check
 
     setInterval(updateTimeSinceLastAction, 1000);
-    setInterval(updateCurrentMode, 5000);
+    setInterval(updateCurrentMode, 1000);
     setInterval(updateDesiredTemperature, 5000);
-    setInterval(updateTemperatureSettings, 5000); // Update heat and cool settings
+    setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
     setInterval(sendModeUpdate, 5000); // Update mode request
 
     // Add event listeners for temperature buttons
