@@ -109,6 +109,9 @@ function updateCurrentMode() {
     .then(data => {
         document.getElementById("current-mode").innerText = data.current_mode;
         currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
+        if (currentTargetMode == null) {
+            currentTargetMode = currentMode; // Initialize target mode if not set
+        }
     })
     .catch(error => console.error('Error fetching current mode:', error));
 }
