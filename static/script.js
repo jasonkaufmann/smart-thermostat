@@ -2,6 +2,7 @@ let currentTargetTemp;
 let currentSetTemp;
 let currentMode;
 let currentTargetMode;
+let userNotRequestingChange = true;
 
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 2000) {
@@ -132,7 +133,7 @@ function updateDesiredTemperature() {
     .then(data => {
         currentSetTemp = data.desired_temperature;
         document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
-        if (currentSetTemp !== currentTargetTemp) {
+        if (currentSetTemp !== currentTargetTemp && userNotRequestingChange) {
             currentTargetTemp = currentSetTemp;
             document.getElementById("desired-temperature").value = currentSetTemp;
         }
@@ -189,6 +190,7 @@ function sendTemperatureUpdate() {
             return response.json();
         })
         .then(data => console.log('Temperature update response:', data))
+        .then(() => userNotRequestingChange = true)
         .catch(error => console.error('Error sending temperature update:', error));
     }
 }
@@ -328,11 +330,13 @@ window.onload = function() {
     // Add event listeners for temperature buttons
     document.getElementById('increase-temp').addEventListener('click', () => {
         adjustTemperature(1);
+        userNotRequestingChange = false;
         debouncedSendTemperatureUpdate();
     });
 
     document.getElementById('decrease-temp').addEventListener('click', () => {
         adjustTemperature(-1);
+        userNotRequestingChange = false;
         debouncedSendTemperatureUpdate();
     });
 
