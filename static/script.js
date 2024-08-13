@@ -1,6 +1,7 @@
 let currentTargetTemp;
 let currentSetTemp;
 let currentMode;
+let currentTargetMode;
 
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 2000) {
@@ -218,6 +219,43 @@ function sendTemperatureUpdate() {
     }
 }
 
+// Function to send a mode update to the server
+function sendModeUpdate() {
+    console.log("Sending mode update to server");
+    console.log("Current Mode:", currentMode);
+    console.log("Current Target Mode:", currentTargetMode);
+
+    if (currentTargetMode !== currentMode) {
+        fetchWithTimeout("http://10.0.0.54:5000/set_mode", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ mode: currentTargetMode })
+        }, 400)
+        .then(response => {
+            console.log("Received response for mode update");
+            if (!response.ok) {
+                console.error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Mode update response:', data);
+            currentMode = currentTargetMode; // Update the current mode to the target mode after a successful change
+        })
+        .catch(error => console.error('Error sending mode update:', error));
+    }
+}
+
+// Function to update the target mode based on user input
+function updateTargetMode(radioButton) {
+    console.log("Updating target mode to:", radioButton.value);
+    currentTargetMode = radioButton.value.toLowerCase(); // Ensure mode is in lowercase
+}
+
 // Debounce function to limit the rate of function execution
 function debounce(func, delay) {
     let timeoutId;
@@ -233,6 +271,9 @@ function debounce(func, delay) {
 
 // Debounced version of sendTemperatureUpdate to control frequency
 const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 5000);
+
+// Debounced version of sendModeUpdate to control frequency
+const debouncedSendModeUpdate = debounce(sendModeUpdate, 5000);
 
 // Function to activate the light
 function activateLight() {
@@ -320,6 +361,7 @@ window.onload = function() {
     setInterval(updateCurrentMode, 5000);
     setInterval(updateDesiredTemperature, 5000);
     setInterval(updateTemperatureSettings, 5000); // Update heat and cool settings
+    setInterval(debouncedSendModeUpdate, 5000); // Update mode request
 
     // Add event listeners for temperature buttons
     document.getElementById('increase-temp').addEventListener('click', () => {
