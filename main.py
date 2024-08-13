@@ -100,6 +100,7 @@ def video_feed():
 
 def actuate_servo(servo, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
+    global last_action_time
     logging.info("Actuating servo from angle %d to %d", start_angle, target_angle)
     if args.simulate:
         logging.debug(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
@@ -108,6 +109,8 @@ def actuate_servo(servo, start_angle, target_angle):
         time.sleep(0.3)  # Delay for 0.3 seconds
         servo.angle = start_angle
         time.sleep(0.5)  # Delay for 0.5 seconds
+    last_action_time = time.time()  # Update the last action time
+        
 
 def cycle_mode_to_desired(desired_mode):
     """Cycle through the modes until the desired mode is reached."""
@@ -180,7 +183,6 @@ def set_temperature_logic(target_temp):
             for _ in range(temp_difference):
                 logging.debug("Actuating servo to increase temperature")
                 actuate_servo(servo_up, 180, 0)
-            last_action_time = time.time()  # Update the last action time
             logging.debug("Updated last_action_time after increasing temperature")
         elif temp_difference < 0:  # Decrease temperature
             if time.time() - last_action_time > 45:
@@ -190,7 +192,6 @@ def set_temperature_logic(target_temp):
             for _ in range(abs(temp_difference)):
                 logging.debug("Actuating servo to decrease temperature")
                 actuate_servo(servo_down, 0, 180)
-            last_action_time = time.time()  # Update the last action time
             logging.debug("Updated last_action_time after decreasing temperature")
         else:
             logging.info("Simulation mode is on, not saving settings")
@@ -211,7 +212,6 @@ def activate_screen():
     logging.info("Activating screen...")
     global screen_active, last_action_time
     actuate_servo(servo_mode, 0, 180)
-    last_action_time = time.time()  # Update the last action time
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
@@ -332,13 +332,12 @@ def activate_light_route():
     else:
         actuate_servo(servo_mode, 0, 180)
         logging.info("Light button actuated")
-        last_action_time = time.time()
         return jsonify({"status": "success", "light": "activated"})
 
 
 @app.route("/set_mode", methods=["POST"])
 def set_mode():
-    global current_mode, last_action_time
+    global current_mode, last_action_time, current_desired_temp
     data = request.get_json()
     
     if not data or 'mode' not in data:
@@ -423,7 +422,6 @@ def activate_light():
     else:
         actuate_servo(servo_mode, 0, 180)
         logging.info("Light button actuated")
-        last_action_time = time.time()
     return jsonify({"status": "success"})
 
 # Health check endpoint
