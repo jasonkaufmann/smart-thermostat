@@ -181,6 +181,7 @@ function adjustTemperature(change) {
 // Function to send the temperature update to the server
 function sendTemperatureUpdate() {
     if (currentTargetTemp !== currentSetTemp) {
+        console.log("Sending temperature update to server");
         fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
             method: "POST",
             headers: {
@@ -188,7 +189,7 @@ function sendTemperatureUpdate() {
                 "Accept": "application/json"
             },
             body: JSON.stringify({ temperature: currentTargetTemp })
-        }, 400)
+        }, 2000)
         .then(response => {
             if (!response.ok) {
                 console.error(`HTTP error! status: ${response.status}`);
@@ -196,8 +197,10 @@ function sendTemperatureUpdate() {
             }
             return response.json();
         })
-        .then(data => console.log('Temperature update response:', data))
-        .then(() => userNotRequestingChange = true)
+        .then(data => {
+            console.log('Temperature update response:', data);
+            userNotRequestingChange = true; // Update the flag after a successful update
+        })
         .catch(error => console.error('Error sending temperature update:', error));
     }
 }
@@ -216,7 +219,7 @@ function sendModeUpdate() {
                 "Accept": "application/json"
             },
             body: JSON.stringify({ mode: currentTargetMode })
-        }, 400)
+        }, 2000)
         .then(response => {
             console.log("Received response for mode update");
             if (!response.ok) {
