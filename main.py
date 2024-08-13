@@ -123,12 +123,12 @@ def cycle_mode_to_desired(desired_mode):
             current_mode = MODE_OFF  # Add manual mode in the cycle
         else:
             current_mode = MODE_OFF
-        logging.debug("Mode changed to: %s", ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode])
+        logging.debug("Mode changed to: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
 
 def set_temperature_logic(target_temp):
     """Core logic for setting the temperature."""
     logging.info("Function set_temperature_logic called with target_temp: %d", target_temp)
-    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active
+    global current_heat_temp, current_cool_temp, ambient_temp, last_action_time, screen_active, current_mode
 
     # Attempt to acquire lock with a timeout
     acquired = lock.acquire(timeout=5)
@@ -227,8 +227,6 @@ def read_ambient_temperature():
         if ambient_temp_new != ambient_temp:
             ambient_temp = ambient_temp_new
             logging.info("Ambient temperature updated to: %.1f°F", ambient_temp_new)
-            # Directly call the logic without Flask's jsonify
-            #set_temperature_logic(current_desired_temp)
 
 def save_settings():
     """Save current settings to a file."""
@@ -279,7 +277,7 @@ def log_info():
                 file.write(f"Current heat temperature: {current_heat_temp}°F\n")
                 file.write(f"Current cool temperature: {current_cool_temp}°F\n")
                 file.write(f"Ambient temperature: {ambient_temp}°F\n")
-                file.write(f"Current mode: {['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]}\n")
+                file.write(f"Current mode: {['OFF', 'HEAT', 'COOL'][current_mode]}\n")
 
         time.sleep(1)  # Log every second
 
@@ -382,10 +380,6 @@ def get_time_since_last_action():
     time_since_last_action = time.time() - last_action_time
     logging.debug("Time since last action requested: %.1f seconds", time_since_last_action)
     response = jsonify({"time_since_last_action": round(time_since_last_action, 1)})
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    # Optionally, specify more headers
-    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     return response
 
 @app.route("/ambient_temperature", methods=["GET"])
@@ -395,16 +389,14 @@ def get_ambient_temperature():
     logging.debug("Ambient temperature requested")
     read_ambient_temperature()
     response = jsonify({"ambient_temperature": ambient_temp})
-    response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 @app.route("/current_mode", methods=["GET"])
 def get_current_mode():
     global current_mode
-    mode_name = ['OFF', 'HEAT', 'COOL', 'MANUAL'][current_mode]
+    mode_name = ['OFF', 'HEAT', 'COOL'][current_mode]
     logging.debug("Current mode requested: %s", mode_name)
     response = jsonify({"current_mode": mode_name})
-    response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 @app.route("/set_temperature", methods=["GET"])
@@ -412,7 +404,6 @@ def get_desired_temperature():
     global current_desired_temp
     logging.debug("Desired temperature requested: %d°F", current_desired_temp)
     response = jsonify({"desired_temperature": current_desired_temp})
-    response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 @app.route("/temperature_settings")
