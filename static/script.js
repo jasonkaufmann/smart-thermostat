@@ -3,6 +3,7 @@ let currentSetTemp;
 let currentMode;
 let currentTargetMode;
 let userNotRequestingChange = true;
+let userNotRequestingChangeMode = true;
 
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 2000) {
@@ -111,6 +112,10 @@ function updateCurrentMode() {
         currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
         if (currentTargetMode == null) {
             currentTargetMode = currentMode; // Initialize target mode if not set
+        }
+        if (currentMode !== currentTargetMode && userNotRequestingChangeMode) {
+            document.getElementById(currentMode + "-mode").checked = true; // Update the radio button
+            currentTargetMode = currentMode; // Update the target mode to the current mode
         }
     })
     .catch(error => console.error('Error fetching current mode:', error));
@@ -231,6 +236,7 @@ function sendModeUpdate() {
         .then(data => {
             console.log('Mode update response:', data);
             currentMode = currentTargetMode; // Update the current mode to the target mode after a successful change
+            userNotRequestingChangeMode = true; // Update the flag after a successful update
         })
         .catch(error => console.error('Error sending mode update:', error));
     }
@@ -238,6 +244,7 @@ function sendModeUpdate() {
 
 // Function to update the target mode based on user input
 function updateTargetMode(radioButton) {
+    userNotRequestingChangeMode = false;
     console.log("Updating target mode:", radioButton);
     currentTargetMode = radioButton.value.toLowerCase(); // Ensure mode is in lowercase
 }
