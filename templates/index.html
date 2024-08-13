@@ -30,13 +30,13 @@
         <div class="radio-group">
             <label>Mode:</label>
             <label>
-                <input type="radio" name="mode" value="off" onchange="updateTargetMode(this)" {% if current_mode == 0 %}checked{% endif %}> OFF
+                <input type="radio" name="mode" value="off" onchange="updateTargetMode()" {% if current_mode == 0 %}checked{% endif %}> OFF
             </label>
             <label>
-                <input type="radio" name="mode" value="heat" onchange="updateTargetMode(this)" {% if current_mode == 1 %}checked{% endif %}> HEAT
+                <input type="radio" name="mode" value="heat" onchange="updateTargetMode()" {% if current_mode == 1 %}checked{% endif %}> HEAT
             </label>
             <label>
-                <input type="radio" name="mode" value="cool" onchange="updateTargetMode(this)" {% if current_mode == 2 %}checked{% endif %}> COOL
+                <input type="radio" name="mode" value="cool" onchange="updateTargetMode()" {% if current_mode == 2 %}checked{% endif %}> COOL
             </label>
         </div>
 
