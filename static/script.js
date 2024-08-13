@@ -222,6 +222,7 @@ function sendModeUpdate() {
 
 // Function to update the target mode based on user input
 function updateTargetMode(radioButton) {
+    console.log("Updating target mode:", radioButton);
     currentTargetMode = radioButton.value.toLowerCase(); // Ensure mode is in lowercase
 }
 
@@ -240,9 +241,6 @@ function debounce(func, delay) {
 
 // Debounced version of sendTemperatureUpdate to control frequency
 const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 5000);
-
-// Debounced version of sendModeUpdate to control frequency
-const debouncedSendModeUpdate = debounce(sendModeUpdate, 5000);
 
 // Function to activate the light
 function activateLight() {
@@ -321,7 +319,7 @@ window.onload = function() {
     setInterval(updateCurrentMode, 5000);
     setInterval(updateDesiredTemperature, 5000);
     setInterval(updateTemperatureSettings, 5000); // Update heat and cool settings
-    setInterval(debouncedSendModeUpdate, 5000); // Update mode request
+    setInterval(sendModeUpdate, 5000); // Update mode request
 
     // Add event listeners for temperature buttons
     document.getElementById('increase-temp').addEventListener('click', () => {
