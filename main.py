@@ -354,10 +354,12 @@ def set_mode():
         cycle_mode_to_desired(MODE_HEAT)
         logging.info("Switched mode to HEAT")
         current_mode = MODE_HEAT
+        current_desired_temp = current_heat_temp
     elif mode == 'cool':
         cycle_mode_to_desired(MODE_COOL)
         logging.info("Switched mode to COOL")
         current_mode = MODE_COOL
+        current_desired_temp = current_cool_temp
     elif mode == 'off':
         cycle_mode_to_desired(MODE_OFF)
         logging.info("Switched mode to OFF")
