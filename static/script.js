@@ -277,7 +277,6 @@ function changeButtonColor() {
     }, 3000);
 }
 
-// Function to initialize video feed
 function initializeVideoFeed() {
     console.log("Initializing video feed");
 
@@ -287,26 +286,29 @@ function initializeVideoFeed() {
 
     // Function to load the next video frame
     function loadNextFrame() {
-        video.onload = () => {
+        const newFrameUrl = videoFeedUrl + '?t=' + new Date().getTime();
+
+        // Create a new image object to load the frame
+        const imgLoader = new Image();
+
+        imgLoader.onload = () => {
             console.log("Video frame loaded");
+            video.src = newFrameUrl; // Update the video source only after loading
             setTimeout(loadNextFrame, 1000); // Load the next frame after 1 second
         };
 
-        video.onerror = () => {
+        imgLoader.onerror = () => {
             console.error("Failed to load video frame, retrying...");
             setTimeout(loadNextFrame, 1000); // Retry loading the frame after 1 second
         };
 
-        // Update the video source to fetch the latest frame
-        video.src = videoFeedUrl + '?t=' + new Date().getTime();
+        // Start loading the new frame
+        imgLoader.src = newFrameUrl;
     }
 
     // Load the first frame to start the process
     loadNextFrame();
 }
-
-
-
 
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
