@@ -118,6 +118,10 @@ function updateCurrentMode() {
 
 // Function to update the desired temperature
 function updateDesiredTemperature() {
+    console.log("Updating desired temperature");
+    console.log("Current Set Temp:", currentSetTemp);
+    console.log("Current Target Temp:", currentTargetTemp);
+    console.log("User Not Requesting Change:", userNotRequestingChange);
     fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
         method: 'GET',
         mode: 'cors',
