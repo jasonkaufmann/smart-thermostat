@@ -132,6 +132,10 @@ function updateDesiredTemperature() {
     .then(data => {
         currentSetTemp = data.desired_temperature;
         document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
+        if (currentSetTemp !== currentTargetTemp) {
+            currentTargetTemp = currentSetTemp;
+            document.getElementById("desired-temperature").value = currentSetTemp;
+        }
     })
     .catch(error => console.error('Error fetching desired temperature:', error));
 }
