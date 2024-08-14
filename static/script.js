@@ -5,7 +5,7 @@ let currentTargetMode;
 let userNotRequestingChange = true;
 let userNotRequestingChangeMode = true;
 let autoUpdatePaused = false; // New flag to pause auto-updates during user interactions
-let timeout = 1000; // Timeout for fetch requests
+let timeout = 2000; // Timeout for fetch requests
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 1000) {
     const controller = new AbortController();
@@ -320,12 +320,12 @@ function initializeVideoFeed() {
 
         imgLoader.onload = () => {
             video.src = newFrameUrl; // Update the video source only after loading
-            setTimeout(loadNextFrame, 1000); // Load the next frame after 1 second
+            setTimeout(loadNextFrame, 5000); // Load the next frame after 1 second
         };
 
         imgLoader.onerror = () => {
             console.error("Failed to load video frame, retrying...");
-            setTimeout(loadNextFrame, 1000); // Retry loading the frame after 1 second
+            setTimeout(loadNextFrame, 5000); // Retry loading the frame after 1 second
         };
 
         // Start loading the new frame
