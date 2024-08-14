@@ -164,13 +164,11 @@ function sendTemperatureUpdate() {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return response.json();
-        })
-        .then(data => {
             console.log('Temperature update response:', data);
             userNotRequestingChange = true;
             console.log('User not requesting temperature change:', userNotRequestingChange);
             autoUpdatePaused = false; // Resume automatic updates after successful change
+            return response.json();
         })
         .catch(error => {
             console.error('Error sending temperature update:', error);
@@ -182,6 +180,7 @@ function sendTemperatureUpdate() {
 // Function to send a mode update to the server
 function sendModeUpdate() {
     if (currentTargetMode !== currentMode) {
+        console.log('Sending mode update:', currentTargetMode);
         fetchWithTimeout("http://10.0.0.54:5000/set_mode", {
             method: "POST",
             headers: {
@@ -191,19 +190,17 @@ function sendModeUpdate() {
             body: JSON.stringify({ mode: currentTargetMode })
         }, timeout)
         .then(response => {
+            console.log('Mode update response:', response);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Mode update response:', data);
             currentMode = currentTargetMode;
             document.getElementById("current-mode").innerText = currentMode.toUpperCase();
             console.log('Current mode updated to:', currentMode);
             userNotRequestingChangeMode = true;
             console.log('User not requesting mode change:', userNotRequestingChangeMode);
             autoUpdatePaused = false; // Resume automatic updates after successful change
+            return response.json();
         })
         .catch(error => {
             console.error('Error sending mode update:', error);
