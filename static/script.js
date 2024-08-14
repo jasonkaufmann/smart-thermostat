@@ -167,7 +167,9 @@ function sendTemperatureUpdate() {
             return response.json();
         })
         .then(data => {
+            console.log('Temperature update response:', data);
             userNotRequestingChange = true;
+            console.log('User not requesting temperature change:', userNotRequestingChange);
             autoUpdatePaused = false; // Resume automatic updates after successful change
         })
         .catch(error => {
@@ -195,8 +197,11 @@ function sendModeUpdate() {
             return response.json();
         })
         .then(data => {
+            console.log('Mode update response:', data);
             currentMode = currentTargetMode;
+            console.log('Current mode updated to:', currentMode);
             userNotRequestingChangeMode = true;
+            console.log('User not requesting mode change:', userNotRequestingChangeMode);
             autoUpdatePaused = false; // Resume automatic updates after successful change
         })
         .catch(error => {
