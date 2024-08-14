@@ -199,6 +199,7 @@ function sendModeUpdate() {
         .then(data => {
             console.log('Mode update response:', data);
             currentMode = currentTargetMode;
+            document.getElementById("current-mode").innerText = currentMode.toUpperCase();
             console.log('Current mode updated to:', currentMode);
             userNotRequestingChangeMode = true;
             console.log('User not requesting mode change:', userNotRequestingChangeMode);
@@ -235,7 +236,7 @@ function updateCurrentMode() {
         }
         if (currentMode !== currentTargetMode && userNotRequestingChangeMode) {
             document.getElementById(currentMode + "-mode").checked = true; // Update the radio button
-            document.getElementById("current-mode").innerText = currentMode; // Update the current mode
+            document.getElementById("current-mode").innerText = currentMode.toUpperCase(); // Update the current mode
             currentTargetMode = currentMode; // Update the target mode to the current mode
         }
     })
