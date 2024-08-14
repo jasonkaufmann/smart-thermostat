@@ -340,9 +340,9 @@ window.onload = function() {
 
     setInterval(updateTimeSinceLastAction, 1000);
     setInterval(updateCurrentMode, 1000);
-    setInterval(updateDesiredTemperature, 5000);
+    setInterval(updateDesiredTemperature, 1000);
     setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
-    setInterval(sendModeUpdate, 5000); // Update mode request
+    setInterval(sendModeUpdate, 1000); // Update mode request
 
     // Add event listeners for temperature buttons
     document.getElementById('increase-temp').addEventListener('click', () => {
