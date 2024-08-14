@@ -152,6 +152,7 @@ function adjustTemperature(change) {
 // Function to send the temperature update to the server
 function sendTemperatureUpdate() {
     if (currentTargetTemp !== currentSetTemp) {
+        console.log('Sending temperature update:', currentTargetTemp);
         fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
             method: "POST",
             headers: {
