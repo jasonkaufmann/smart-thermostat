@@ -165,7 +165,6 @@ function sendTemperatureUpdate() {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            console.log('Temperature update response:', data);
             userNotRequestingChange = true;
             console.log('User not requesting temperature change:', userNotRequestingChange);
             autoUpdatePaused = false; // Resume automatic updates after successful change
