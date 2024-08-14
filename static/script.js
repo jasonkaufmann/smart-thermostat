@@ -5,7 +5,7 @@ let currentTargetMode;
 let userNotRequestingChange = true;
 let userNotRequestingChangeMode = true;
 let autoUpdatePaused = false; // New flag to pause auto-updates during user interactions
-
+let timeout = 1000; // Timeout for fetch requests
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 1000) {
     const controller = new AbortController();
@@ -25,7 +25,7 @@ function checkServerHealth() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             console.error(`HTTP error! status: ${response.status}`);
@@ -51,7 +51,7 @@ function initializeDesiredTemperature() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -76,7 +76,7 @@ function updateTimeSinceLastAction() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             console.error(`HTTP error! status: ${response.status}`);
@@ -100,7 +100,7 @@ function updateDesiredTemperature() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -127,7 +127,7 @@ function updateTemperatureSettings() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -159,7 +159,7 @@ function sendTemperatureUpdate() {
                 "Accept": "application/json"
             },
             body: JSON.stringify({ temperature: currentTargetTemp })
-        }, 500)
+        }, timeout)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -189,7 +189,7 @@ function sendModeUpdate() {
                 "Accept": "application/json"
             },
             body: JSON.stringify({ mode: currentTargetMode })
-        }, 500)
+        }, timeout)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -221,7 +221,7 @@ function updateCurrentMode() {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -273,7 +273,7 @@ function activateLight() {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
-    }, 500)
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             console.error(`HTTP error! status: ${response.status}`);
