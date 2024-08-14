@@ -5,9 +5,9 @@ let currentTargetMode;
 let userNotRequestingChange = true;
 let userNotRequestingChangeMode = true;
 let autoUpdatePaused = false; // New flag to pause auto-updates during user interactions
-let timeout = 2000; // Timeout for fetch requests
+let timeout = 10000; // Timeout for fetch requests
 // Utility function to fetch with a timeout
-function fetchWithTimeout(url, options, timeout = 1000) {
+function fetchWithTimeout(url, options, timeout = 5000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     return fetch(url, {
