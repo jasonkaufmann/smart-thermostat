@@ -235,6 +235,7 @@ function updateCurrentMode() {
         }
         if (currentMode !== currentTargetMode && userNotRequestingChangeMode) {
             document.getElementById(currentMode + "-mode").checked = true; // Update the radio button
+            document.getElementById("current-mode").innerText = currentMode; // Update the current mode
             currentTargetMode = currentMode; // Update the target mode to the current mode
         }
     })
