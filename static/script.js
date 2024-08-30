@@ -503,5 +503,5 @@ window.onload = function() {
     displayScheduledItems(); // Display any existing scheduled items
 
     // Poll the server every 10 seconds for new scheduled events
-    setInterval(fetchScheduledEvents, 10000);
+    setInterval(fetchScheduledEvents, 3000);
 };
