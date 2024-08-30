@@ -335,6 +335,44 @@ function initializeVideoFeed() {
     loadNextFrame();
 }
 
+// Function to submit the schedule
+function submitSchedule() {
+    const time = document.getElementById('schedule-time').value;
+    const temp = document.getElementById('schedule-temp').value;
+    const mode = document.getElementById('schedule-mode').value;
+    const enabled = document.getElementById('schedule-enable').checked;
+
+    if (enabled && time && temp && mode) {
+        const scheduleData = {
+            time: time,
+            temperature: parseInt(temp),
+            mode: mode
+        };
+
+        fetchWithTimeout("http://10.0.0.54:5000/set_schedule", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(scheduleData)
+        }, timeout)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Schedule set successfully:', data);
+            alert('Schedule set successfully!');
+        })
+        .catch(error => console.error('Error setting schedule:', error));
+    } else {
+        alert('Please fill all fields and enable the schedule.');
+    }
+
+
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
     checkServerHealth(); // Start with a server health check

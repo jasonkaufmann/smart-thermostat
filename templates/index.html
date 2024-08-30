@@ -51,5 +51,28 @@
 
     <h2>Video Stream</h2>
     <img id="video" class="video-stream" data-video-feed-url="{{ url_for('video_feed') }}">
+
+    <!-- New Scheduling Section -->
+    <div class="schedule-panel">
+        <h2>Schedule Temperature and Mode</h2>
+        <label for="schedule-time">Time:</label>
+        <input type="time" id="schedule-time" name="schedule-time">
+        
+        <label for="schedule-temp">Temperature:</label>
+        <input type="number" id="schedule-temp" name="schedule-temp" min="50" max="90">
+        
+        <label for="schedule-mode">Mode:</label>
+        <select id="schedule-mode" name="schedule-mode">
+            <option value="off">OFF</option>
+            <option value="heat">HEAT</option>
+            <option value="cool">COOL</option>
+        </select>
+        
+        <label for="schedule-enable">Enable Schedule:</label>
+        <input type="checkbox" id="schedule-enable" name="schedule-enable">
+        
+        <button type="button" id="schedule-submit" onclick="submitSchedule()">Set Schedule</button>
+    </div>
+
 </body>
 </html>
