@@ -34,6 +34,8 @@ servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
 servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
 servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
 
+# Define the file path to store scheduled events
+SCHEDULE_FILE_PATH = 'scheduled_events.json'
 # Constants for modes
 MODE_OFF = 0
 MODE_HEAT = 1
@@ -285,6 +287,28 @@ def load_settings():
         current_mode = MODE_OFF
         current_desired_temp = 70
 
+def load_scheduled_events():
+    """Load scheduled events from a file on startup."""
+    global scheduled_events
+    try:
+        with open(SCHEDULE_FILE_PATH, 'r') as file:
+            scheduled_events = json.load(file)
+        print(f"Loaded {len(scheduled_events)} scheduled events from file.")
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("No scheduled events file found or file is corrupted. Starting fresh.")
+        scheduled_events = []
+
+def save_scheduled_events():
+    """Save scheduled events to a file whenever they change."""
+    global scheduled_events
+    try:
+        with open(SCHEDULE_FILE_PATH, 'w') as file:
+            json.dump(scheduled_events, file, indent=4)
+        print("Scheduled events saved to file.")
+    except Exception as e:
+        print(f"Error saving scheduled events to file: {e}")
+
+
 def log_info():
     """Continuously log the current state to a file."""
     logging.info("Starting log info thread")
@@ -407,6 +431,8 @@ def delete_schedule(schedule_id):
     # Find the schedule in the list and remove it
     scheduled_events = [event for event in scheduled_events if event['id'] != schedule_id]
 
+    save_scheduled_events()  # Save changes to file
+
     return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} deleted"}), 200
 
 @app.route("/update_schedule/<int:schedule_id>", methods=["PATCH"])
@@ -422,6 +448,7 @@ def update_schedule(schedule_id):
     for event in scheduled_events:
         if event['id'] == schedule_id:
             event['enabled'] = data['enabled']
+            save_scheduled_events()  # Save changes to file
             return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} updated"}), 200
 
     return jsonify({"status": "error", "message": f"Schedule with ID {schedule_id} not found"}), 404
@@ -479,6 +506,7 @@ def set_schedule():
     })
     
     logging.info(f"Scheduled time: {time_str}, Temperature: {temperature}, Mode: {mode}, Enabled: {enabled}")
+    save_scheduled_events()  # Save changes to file
 
     return jsonify({"status": "success", "message": "Schedule set successfully"}), 200
 
@@ -546,7 +574,8 @@ def main():
         # Load settings from the file at startup
         logging.info("Starting main function")
         load_settings()
-
+        load_scheduled_events()
+        
         # Start logging in a separate thread
         logging.info("Starting logging thread")
         logging_thread = threading.Thread(target=log_info, daemon=True)
