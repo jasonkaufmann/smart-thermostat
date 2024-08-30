@@ -379,7 +379,7 @@ function submitSchedule() {
         })
         .then(data => {
             console.log('Schedule set successfully:', data);
-            alert('Schedule set successfully!');
+            //alert('Schedule set successfully!');
             fetchScheduledEvents(); // Refresh the list after setting a new schedule
         })
         .catch(error => console.error('Error setting schedule:', error));
