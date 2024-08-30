@@ -470,12 +470,14 @@ def update_schedule(schedule_id):
             if not data['enabled']:
                 cancel_scheduled_action(schedule_id)  # Cancel the scheduled action if it is disabled
             else:
-                # Reschedule the task if it's enabled again
-                schedule_action(schedule_id, datetime.datetime.strptime(event['time'], '%H:%M:%S'), event['temperature'], event['mode'])
+                # Correct the datetime parsing format to match 'HH:MM'
+                action_time = datetime.datetime.strptime(event['time'], '%H:%M')
+                schedule_action(schedule_id, action_time, event['temperature'], event['mode'])
             save_scheduled_events()  # Save changes to file
             return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} updated"}), 200
 
     return jsonify({"status": "error", "message": f"Schedule with ID {schedule_id} not found"}), 404
+
 
 @app.route("/set_schedule", methods=["POST"])
 def set_schedule():
