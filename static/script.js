@@ -274,7 +274,7 @@ function displayScheduledItems() {
     const scheduledItemsContainer = document.getElementById('scheduled-items');
     scheduledItemsContainer.innerHTML = ''; // Clear existing items
 
-    scheduledItems.forEach((item, index) => {
+    scheduledItems.forEach(item => { // Use each item's unique id directly from the server
         const scheduleItemDiv = document.createElement('div');
         scheduleItemDiv.classList.add('schedule-item');
 
@@ -284,11 +284,11 @@ function displayScheduledItems() {
         const enableCheckbox = document.createElement('input');
         enableCheckbox.type = 'checkbox';
         enableCheckbox.checked = item.enabled;
-        enableCheckbox.onchange = () => toggleScheduleEnable(index, enableCheckbox.checked);
+        enableCheckbox.onchange = () => toggleScheduleEnable(item.id, enableCheckbox.checked); // Use item.id instead of index
 
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
-        deleteButton.onclick = () => deleteScheduledItem(index);
+        deleteButton.onclick = () => deleteScheduledItem(item.id); // Use item.id instead of index
 
         scheduleItemDiv.appendChild(scheduleInfo);
         scheduleItemDiv.appendChild(enableCheckbox);
@@ -299,17 +299,54 @@ function displayScheduledItems() {
 }
 
 // Function to toggle the enable state of a scheduled item
-function toggleScheduleEnable(index, enabled) {
-    scheduledItems[index].enabled = enabled;
-    console.log(`Schedule ${index} enabled: ${enabled}`);
-    // Optionally, send an update to the server here
+function toggleScheduleEnable(id, enabled) {
+    // Find the item in the array and update its enabled state
+    const item = scheduledItems.find(event => event.id === id);
+    if (item) {
+        item.enabled = enabled;
+        console.log(`Schedule with ID ${id} enabled: ${enabled}`);
+
+        // Send update to server
+        const scheduleData = { enabled: enabled };
+
+        fetchWithTimeout(`http://10.0.0.54:5000/update_schedule/${id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(scheduleData)
+        }, timeout)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            console.log('Schedule updated successfully on server');
+        })
+        .catch(error => console.error('Error updating schedule on server:', error));
+    }
 }
 
 // Function to delete a scheduled item
-function deleteScheduledItem(index) {
-    scheduledItems.splice(index, 1); // Remove the item from the array
-    displayScheduledItems(); // Refresh the display
-    console.log(`Deleted schedule ${index}`);
+function deleteScheduledItem(id) {
+    // Send delete request to server
+    fetchWithTimeout(`http://10.0.0.54:5000/delete_schedule/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Accept": "application/json"
+        }
+    }, timeout)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        console.log(`Schedule with ID ${id} deleted successfully from server`);
+        
+        // If successful, remove the item from the array and refresh display
+        scheduledItems = scheduledItems.filter(event => event.id !== id); // Remove the item by id
+        displayScheduledItems(); // Refresh the display
+    })
+    .catch(error => console.error('Error deleting schedule from server:', error));
 }
 
 // Function to submit the schedule
@@ -317,14 +354,13 @@ function submitSchedule() {
     const time = document.getElementById('schedule-time').value;
     const temp = document.getElementById('schedule-temp').value;
     const mode = document.getElementById('schedule-mode').value;
-    const enabled = document.getElementById('schedule-enable').checked;
 
     if (time && temp && mode) {
         const scheduleData = {
             time: time,
             temperature: parseInt(temp),
             mode: mode,
-            enabled: enabled
+            enabled: true // Automatically set new schedules to enabled
         };
 
         fetchWithTimeout("http://10.0.0.54:5000/set_schedule", {

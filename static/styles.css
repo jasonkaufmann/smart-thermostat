@@ -23,6 +23,7 @@ button {
     margin: 5px 10px 5px 0;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-size: 16px;
 }
 
 button:hover {
@@ -36,6 +37,7 @@ input[type="number"], input[type="time"], select {
     text-align: center;
     border: 1px solid #ccc;
     border-radius: 5px;
+    font-size: 16px;
 }
 
 label {
@@ -104,6 +106,7 @@ img {
     justify-content: space-between;
     padding: 10px;
     border-bottom: 1px solid #ddd;
+    flex-wrap: wrap; /* Allows items to wrap on smaller screens */
 }
 
 .schedule-item:last-child {
@@ -112,8 +115,47 @@ img {
 
 .schedule-item span {
     flex-grow: 1;
+    margin-bottom: 5px; /* Adds space between elements on wrap */
+    word-break: break-word; /* Prevents overflow */
 }
 
 .schedule-item button, .schedule-item input[type="checkbox"] {
     margin-left: 10px;
+}
+
+/* Responsive styles for smaller screens */
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    button {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    input[type="number"], input[type="time"], select {
+        width: calc(100% - 20px);
+        margin: 5px 0;
+    }
+
+    .control-panel, .schedule-panel, .schedule-list {
+        width: 100%;
+        padding: 15px;
+        box-sizing: border-box;
+    }
+
+    .schedule-item {
+        flex-direction: column;
+        align-items: flex-start; /* Aligns items to the left on smaller screens */
+    }
+
+    .schedule-item button, .schedule-item input[type="checkbox"] {
+        margin: 5px 0 0 0; /* Removes left margin and adds top margin */
+        width: 100%; /* Makes buttons full-width */
+    }
+
+    .schedule-item span {
+        margin-bottom: 10px; /* Adds space between elements */
+    }
 }

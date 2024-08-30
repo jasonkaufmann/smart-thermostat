@@ -398,6 +398,34 @@ def set_mode():
     
     return jsonify({"status": "success", "mode": mode})
 
+
+@app.route("/delete_schedule/<int:schedule_id>", methods=["DELETE"])
+def delete_schedule(schedule_id):
+    """Delete a scheduled event by its ID."""
+    global scheduled_events
+
+    # Find the schedule in the list and remove it
+    scheduled_events = [event for event in scheduled_events if event['id'] != schedule_id]
+
+    return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} deleted"}), 200
+
+@app.route("/update_schedule/<int:schedule_id>", methods=["PATCH"])
+def update_schedule(schedule_id):
+    """Update the 'enabled' state of a scheduled event."""
+    global scheduled_events
+    data = request.get_json()
+
+    if 'enabled' not in data:
+        return jsonify({"status": "error", "message": "Invalid data, 'enabled' field is required"}), 400
+
+    # Find the schedule by ID and update its 'enabled' state
+    for event in scheduled_events:
+        if event['id'] == schedule_id:
+            event['enabled'] = data['enabled']
+            return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} updated"}), 200
+
+    return jsonify({"status": "error", "message": f"Schedule with ID {schedule_id} not found"}), 404
+
 @app.route("/set_schedule", methods=["POST"])
 def set_schedule():
     global scheduled_events
@@ -440,8 +468,10 @@ def set_schedule():
     if enabled:
         schedule_action(action_time, temperature, mode_constant)
     
+    event_id = len(scheduled_events) + 1  # Simple ID assignment (incremental)
     # Add the scheduled event to the list
     scheduled_events.append({
+        "id": event_id,
         "time": time_str,
         "temperature": temperature,
         "mode": mode,
