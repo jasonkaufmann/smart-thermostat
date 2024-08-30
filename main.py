@@ -10,6 +10,7 @@ import threading
 import argparse
 import logging
 from flask_cors import CORS
+import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -37,6 +38,8 @@ servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
 MODE_OFF = 0
 MODE_HEAT = 1
 MODE_COOL = 2
+
+scheduled_events = []
 
 # Global variables for managing state
 current_heat_temp = 75
@@ -207,6 +210,27 @@ def set_temperature(target_temp):
         return jsonify(result), 503
     return jsonify(result)
 
+def schedule_action(action_time, temperature, mode):
+    """Schedule a thermostat change at a specific time."""
+    def task():
+        logging.info(f"Executing scheduled task at {action_time}")
+        set_temperature(temperature)
+        set_mode_direct(mode)
+    
+    # Calculate the delay in seconds
+    delay = (action_time - datetime.datetime.now()).total_seconds()
+    if delay > 0:
+        threading.Timer(delay, task).start()
+        logging.info(f"Scheduled task set for {action_time}, in {delay} seconds")
+    else:
+        logging.warning("Scheduled time is in the past, not scheduling task.")
+
+def set_mode_direct(desired_mode):
+    """Directly set the mode without additional checks."""
+    global current_mode
+    cycle_mode_to_desired(desired_mode)
+    current_mode = desired_mode
+
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
     logging.info("Activating screen...")
@@ -373,6 +397,64 @@ def set_mode():
     
     
     return jsonify({"status": "success", "mode": mode})
+
+@app.route("/set_schedule", methods=["POST"])
+def set_schedule():
+    global scheduled_events
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+
+    # Extract data from the request
+    time_str = data.get('time')
+    temperature = data.get('temperature')
+    mode = data.get('mode').lower()
+    enabled = data.get('enabled')
+
+    # Validate data
+    if time_str is None or temperature is None or mode is None or enabled is None:
+        return jsonify({"status": "error", "message": "Missing fields"}), 400
+
+    # Parse the time string into a datetime object
+    try:
+        action_time = datetime.datetime.strptime(time_str, '%H:%M')
+        now = datetime.datetime.now()
+        action_time = action_time.replace(year=now.year, month=now.month, day=now.day)
+        if action_time < now:
+            action_time += datetime.timedelta(days=1)
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid time format"}), 400
+
+    mode_constant = {
+        'off': MODE_OFF,
+        'heat': MODE_HEAT,
+        'cool': MODE_COOL
+    }.get(mode)
+
+    if mode_constant is None:
+        return jsonify({"status": "error", "message": "Invalid mode"}), 400
+
+    # Only schedule if enabled is true
+    if enabled:
+        schedule_action(action_time, temperature, mode_constant)
+    
+    # Add the scheduled event to the list
+    scheduled_events.append({
+        "time": time_str,
+        "temperature": temperature,
+        "mode": mode,
+        "enabled": enabled
+    })
+    
+    logging.info(f"Scheduled time: {time_str}, Temperature: {temperature}, Mode: {mode}, Enabled: {enabled}")
+
+    return jsonify({"status": "success", "message": "Schedule set successfully"}), 200
+
+@app.route("/get_scheduled_events", methods=["GET"])
+def get_scheduled_events():
+    return jsonify(scheduled_events), 200
 
 @app.route("/time_since_last_action", methods=["GET"])
 def get_time_since_last_action():

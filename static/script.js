@@ -1,3 +1,4 @@
+let scheduledItems = []; // Array to store scheduled items
 let currentTargetTemp;
 let currentSetTemp;
 let currentMode;
@@ -6,6 +7,7 @@ let userNotRequestingChange = true;
 let userNotRequestingChangeMode = true;
 let autoUpdatePaused = false; // New flag to pause auto-updates during user interactions
 let timeout = 10000; // Timeout for fetch requests
+
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 5000) {
     const controller = new AbortController();
@@ -166,7 +168,6 @@ function sendTemperatureUpdate() {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             userNotRequestingChange = true;
-            console.log('User not requesting temperature change:', userNotRequestingChange);
             autoUpdatePaused = false; // Resume automatic updates after successful change
             return response.json();
         })
@@ -190,15 +191,12 @@ function sendModeUpdate() {
             body: JSON.stringify({ mode: currentTargetMode })
         }, timeout)
         .then(response => {
-            console.log('Mode update response:', response);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             currentMode = currentTargetMode;
             document.getElementById("current-mode").innerText = currentMode.toUpperCase();
-            console.log('Current mode updated to:', currentMode);
             userNotRequestingChangeMode = true;
-            console.log('User not requesting mode change:', userNotRequestingChangeMode);
             autoUpdatePaused = false; // Resume automatic updates after successful change
             return response.json();
         })
@@ -246,6 +244,72 @@ function updateTargetMode(radioButton) {
     autoUpdatePaused = true; // Pause automatic updates during manual mode change
     currentTargetMode = radioButton.value.toLowerCase(); // Ensure mode is in lowercase
     sendModeUpdate(); // Immediately send the mode update
+}
+
+// Function to fetch scheduled events from the server
+function fetchScheduledEvents() {
+    fetchWithTimeout("http://10.0.0.54:5000/get_scheduled_events", {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    }, timeout)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        scheduledItems = data; // Update the local array with fetched data
+        displayScheduledItems(); // Refresh the display with new data
+    })
+    .catch(error => console.error('Error fetching scheduled events:', error));
+}
+
+// Function to display scheduled items
+function displayScheduledItems() {
+    const scheduledItemsContainer = document.getElementById('scheduled-items');
+    scheduledItemsContainer.innerHTML = ''; // Clear existing items
+
+    scheduledItems.forEach((item, index) => {
+        const scheduleItemDiv = document.createElement('div');
+        scheduleItemDiv.classList.add('schedule-item');
+
+        const scheduleInfo = document.createElement('span');
+        scheduleInfo.textContent = `Time: ${item.time}, Temp: ${item.temperature}°F, Mode: ${item.mode.toUpperCase()}`;
+
+        const enableCheckbox = document.createElement('input');
+        enableCheckbox.type = 'checkbox';
+        enableCheckbox.checked = item.enabled;
+        enableCheckbox.onchange = () => toggleScheduleEnable(index, enableCheckbox.checked);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => deleteScheduledItem(index);
+
+        scheduleItemDiv.appendChild(scheduleInfo);
+        scheduleItemDiv.appendChild(enableCheckbox);
+        scheduleItemDiv.appendChild(deleteButton);
+
+        scheduledItemsContainer.appendChild(scheduleItemDiv);
+    });
+}
+
+// Function to toggle the enable state of a scheduled item
+function toggleScheduleEnable(index, enabled) {
+    scheduledItems[index].enabled = enabled;
+    console.log(`Schedule ${index} enabled: ${enabled}`);
+    // Optionally, send an update to the server here
+}
+
+// Function to delete a scheduled item
+function deleteScheduledItem(index) {
+    scheduledItems.splice(index, 1); // Remove the item from the array
+    displayScheduledItems(); // Refresh the display
+    console.log(`Deleted schedule ${index}`);
 }
 
 // Debounce function to limit the rate of function execution
@@ -335,93 +399,6 @@ function initializeVideoFeed() {
     loadNextFrame();
 }
 
-let scheduledItems = []; // Array to store scheduled items
-
-// Function to submit the schedule
-function submitSchedule() {
-    const time = document.getElementById('schedule-time').value;
-    const temp = document.getElementById('schedule-temp').value;
-    const mode = document.getElementById('schedule-mode').value;
-    const enabled = document.getElementById('schedule-enable').checked;
-
-    if (time && temp && mode) {
-        const scheduleData = {
-            time: time,
-            temperature: parseInt(temp),
-            mode: mode,
-            enabled: enabled
-        };
-
-        scheduledItems.push(scheduleData); // Add to the scheduled items array
-        displayScheduledItems(); // Refresh the display
-
-        fetchWithTimeout("http://10.0.0.54:5000/set_schedule", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify(scheduleData)
-        }, timeout)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Schedule set successfully:', data);
-            alert('Schedule set successfully!');
-        })
-        .catch(error => console.error('Error setting schedule:', error));
-    } else {
-        alert('Please fill all fields to set a schedule.');
-    }
-}
-
-// Function to display scheduled items
-function displayScheduledItems() {
-    const scheduledItemsContainer = document.getElementById('scheduled-items');
-    scheduledItemsContainer.innerHTML = ''; // Clear existing items
-
-    scheduledItems.forEach((item, index) => {
-        const scheduleItemDiv = document.createElement('div');
-        scheduleItemDiv.classList.add('schedule-item');
-
-        const scheduleInfo = document.createElement('span');
-        scheduleInfo.textContent = `Time: ${item.time}, Temp: ${item.temperature}°F, Mode: ${item.mode.toUpperCase()}`;
-
-        const enableCheckbox = document.createElement('input');
-        enableCheckbox.type = 'checkbox';
-        enableCheckbox.checked = item.enabled;
-        enableCheckbox.onchange = () => toggleScheduleEnable(index, enableCheckbox.checked);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.onclick = () => deleteScheduledItem(index);
-
-        scheduleItemDiv.appendChild(scheduleInfo);
-        scheduleItemDiv.appendChild(enableCheckbox);
-        scheduleItemDiv.appendChild(deleteButton);
-
-        scheduledItemsContainer.appendChild(scheduleItemDiv);
-    });
-}
-
-// Function to toggle the enable state of a scheduled item
-function toggleScheduleEnable(index, enabled) {
-    scheduledItems[index].enabled = enabled;
-    console.log(`Schedule ${index} enabled: ${enabled}`);
-    // Optionally, send an update to the server here
-}
-
-// Function to delete a scheduled item
-function deleteScheduledItem(index) {
-    scheduledItems.splice(index, 1); // Remove the item from the array
-    displayScheduledItems(); // Refresh the display
-    console.log(`Deleted schedule ${index}`);
-}
-
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
     checkServerHealth(); // Start with a server health check
@@ -448,4 +425,7 @@ window.onload = function() {
     initializeVideoFeed(); // Initialize video feed after temperature setup
 
     displayScheduledItems(); // Display any existing scheduled items
+
+    // Poll the server every 10 seconds for new scheduled events
+    setInterval(fetchScheduledEvents, 10000);
 };
