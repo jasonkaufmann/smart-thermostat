@@ -43,6 +43,8 @@ MODE_HEAT = 1
 MODE_COOL = 2
 
 scheduled_events = []
+# Global dictionary to keep track of active timers
+active_timers = {}
 
 # Global variables for managing state
 current_heat_temp = 75
@@ -213,20 +215,34 @@ def set_temperature(target_temp):
         return jsonify(result), 503
     return jsonify(result)
 
-def schedule_action(action_time, temperature, mode):
+def schedule_action(action_id, action_time, temperature, mode):
     """Schedule a thermostat change at a specific time."""
     def task():
-        logging.info(f"Executing scheduled task at {action_time}")
+        logging.info(f"Executing scheduled task for ID {action_id} at {action_time}")
         set_temperature(temperature)
         set_mode_direct(mode)
+        # Remove the action from the dictionary after execution
+        active_timers.pop(action_id, None)
     
     # Calculate the delay in seconds
     delay = (action_time - datetime.datetime.now()).total_seconds()
     if delay > 0:
-        threading.Timer(delay, task).start()
-        logging.info(f"Scheduled task set for {action_time}, in {delay} seconds")
+        timer = threading.Timer(delay, task)
+        timer.start()
+        # Store the timer in the dictionary using action_id as the key
+        active_timers[action_id] = timer
+        logging.info(f"Scheduled task set for {action_time} (ID: {action_id}), in {delay} seconds")
     else:
         logging.warning("Scheduled time is in the past, not scheduling task.")
+
+def cancel_scheduled_action(action_id):
+    """Cancel a scheduled thermostat change."""
+    timer = active_timers.pop(action_id, None)
+    if timer:
+        timer.cancel()
+        logging.info(f"Cancelled scheduled task with ID {action_id}")
+    else:
+        logging.warning(f"No active task found with ID {action_id} to cancel")
 
 def set_mode_direct(desired_mode):
     """Directly set the mode without additional checks."""
@@ -432,6 +448,8 @@ def delete_schedule(schedule_id):
     # Find the schedule in the list and remove it
     scheduled_events = [event for event in scheduled_events if event['id'] != schedule_id]
 
+    cancel_scheduled_action(schedule_id)  # Cancel the scheduled action if it exists
+
     save_scheduled_events()  # Save changes to file
 
     return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} deleted"}), 200
@@ -449,6 +467,11 @@ def update_schedule(schedule_id):
     for event in scheduled_events:
         if event['id'] == schedule_id:
             event['enabled'] = data['enabled']
+            if not data['enabled']:
+                cancel_scheduled_action(schedule_id)  # Cancel the scheduled action if it is disabled
+            else:
+                # Reschedule the task if it's enabled again
+                schedule_action(schedule_id, datetime.datetime.strptime(event['time'], '%H:%M:%S'), event['temperature'], event['mode'])
             save_scheduled_events()  # Save changes to file
             return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} updated"}), 200
 
