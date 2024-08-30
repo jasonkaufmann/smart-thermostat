@@ -1,5 +1,3 @@
-/* styles.css */
-
 body {
     font-family: Arial, sans-serif;
     background-color: #f0f0f0;
@@ -31,8 +29,8 @@ button:hover {
     background-color: #005f99;
 }
 
-input[type="number"] {
-    width: 60px;
+input[type="number"], input[type="time"], select {
+    width: 80px;
     padding: 5px;
     margin: 0 10px;
     text-align: center;
@@ -83,4 +81,39 @@ img {
 /* Add this class to change button color */
 .yellow-bg {
     background-color: yellow !important;
+}
+
+/* New CSS for the Schedule List Section */
+.schedule-panel, .schedule-list {
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    margin-top: 20px;
+}
+
+.schedule-panel h2, .schedule-list h2 {
+    margin-bottom: 15px;
+}
+
+.schedule-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.schedule-item:last-child {
+    border-bottom: none;
+}
+
+.schedule-item span {
+    flex-grow: 1;
+}
+
+.schedule-item button, .schedule-item input[type="checkbox"] {
+    margin-left: 10px;
 }

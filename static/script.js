@@ -312,6 +312,46 @@ function deleteScheduledItem(index) {
     console.log(`Deleted schedule ${index}`);
 }
 
+// Function to submit the schedule
+function submitSchedule() {
+    const time = document.getElementById('schedule-time').value;
+    const temp = document.getElementById('schedule-temp').value;
+    const mode = document.getElementById('schedule-mode').value;
+    const enabled = document.getElementById('schedule-enable').checked;
+
+    if (time && temp && mode) {
+        const scheduleData = {
+            time: time,
+            temperature: parseInt(temp),
+            mode: mode,
+            enabled: enabled
+        };
+
+        fetchWithTimeout("http://10.0.0.54:5000/set_schedule", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(scheduleData)
+        }, timeout)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Schedule set successfully:', data);
+            alert('Schedule set successfully!');
+            fetchScheduledEvents(); // Refresh the list after setting a new schedule
+        })
+        .catch(error => console.error('Error setting schedule:', error));
+    } else {
+        alert('Please fill all fields to set a schedule.');
+    }
+}
+
 // Debounce function to limit the rate of function execution
 function debounce(func, delay) {
     let timeoutId;
