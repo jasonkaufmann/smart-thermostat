@@ -215,25 +215,46 @@ def set_temperature(target_temp):
         return jsonify(result), 503
     return jsonify(result)
 
+import threading
+import datetime
+import logging
+
+# Global dictionary to keep track of active timers
+active_timers = {}
+
 def schedule_action(action_id, action_time, temperature, mode):
-    """Schedule a thermostat change at a specific time."""
+    """Schedule a thermostat change at a specific time every day."""
     def task():
         logging.info(f"Executing scheduled task for ID {action_id} at {action_time}")
         set_temperature(temperature)
         set_mode_direct(mode)
-        # Remove the action from the dictionary after execution
-        active_timers.pop(action_id, None)
+        # Reschedule the task for the same time the next day
+        reschedule_action(action_id, action_time, temperature, mode)
     
-    # Calculate the delay in seconds
-    delay = (action_time - datetime.datetime.now()).total_seconds()
+    # Calculate the delay in seconds until the next occurrence of the action time
+    now = datetime.datetime.now()
+    next_action_time = datetime.datetime.combine(now.date(), action_time.time())
+    
+    if now >= next_action_time:
+        # If the time is already passed today, schedule it for tomorrow
+        next_action_time += datetime.timedelta(days=1)
+    
+    delay = (next_action_time - now).total_seconds()
+    
     if delay > 0:
         timer = threading.Timer(delay, task)
         timer.start()
         # Store the timer in the dictionary using action_id as the key
         active_timers[action_id] = timer
-        logging.info(f"Scheduled task set for {action_time} (ID: {action_id}), in {delay} seconds")
+        logging.info(f"Scheduled task set for {next_action_time} (ID: {action_id}), in {delay} seconds")
     else:
         logging.warning("Scheduled time is in the past, not scheduling task.")
+
+def reschedule_action(action_id, action_time, temperature, mode):
+    """Reschedule the thermostat change for the next day."""
+    # Schedule the action for the same time on the next day
+    next_action_time = action_time + datetime.timedelta(days=1)
+    schedule_action(action_id, next_action_time, temperature, mode)
 
 def cancel_scheduled_action(action_id):
     """Cancel a scheduled thermostat change."""
@@ -243,6 +264,7 @@ def cancel_scheduled_action(action_id):
         logging.info(f"Cancelled scheduled task with ID {action_id}")
     else:
         logging.warning(f"No active task found with ID {action_id} to cancel")
+
 
 def set_mode_direct(desired_mode):
     """Directly set the mode without additional checks."""
@@ -305,12 +327,22 @@ def load_settings():
         current_desired_temp = 70
 
 def load_scheduled_events():
-    """Load scheduled events from a file on startup."""
+    """Load scheduled events from a file on startup and schedule them."""
     global scheduled_events
     try:
         with open(SCHEDULE_FILE_PATH, 'r') as file:
             scheduled_events = json.load(file)
         print(f"Loaded {len(scheduled_events)} scheduled events from file.")
+        
+        # Schedule each event that was loaded
+        for event in scheduled_events:
+            if event['enabled']:
+                action_time = datetime.datetime.strptime(event['time'], '%H:%M')  # Assuming time is in 'HH:MM' format
+                # Combine today's date with the scheduled time
+                action_datetime = datetime.datetime.combine(datetime.datetime.now().date(), action_time.time())
+                schedule_action(event['id'], action_datetime, event['temperature'], event['mode'])
+                print(f"Scheduled action for event ID {event['id']} at {action_datetime}")
+                
     except (FileNotFoundError, json.JSONDecodeError):
         print("No scheduled events file found or file is corrupted. Starting fresh.")
         scheduled_events = []
