@@ -11,6 +11,7 @@ import argparse
 import logging
 from flask_cors import CORS
 import datetime
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -575,7 +576,7 @@ def main():
         logging.info("Starting main function")
         load_settings()
         load_scheduled_events()
-        
+
         # Start logging in a separate thread
         logging.info("Starting logging thread")
         logging_thread = threading.Thread(target=log_info, daemon=True)
