@@ -12,6 +12,17 @@
         .yellow-bg {
             background-color: yellow;
         }
+        .schedule-list {
+            margin-top: 20px;
+        }
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .schedule-item span {
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -72,6 +83,12 @@
         <input type="checkbox" id="schedule-enable" name="schedule-enable">
         
         <button type="button" id="schedule-submit" onclick="submitSchedule()">Set Schedule</button>
+    </div>
+
+    <!-- Schedule List Section -->
+    <div class="schedule-list">
+        <h2>Scheduled Changes</h2>
+        <div id="scheduled-items"></div>
     </div>
 
 </body>

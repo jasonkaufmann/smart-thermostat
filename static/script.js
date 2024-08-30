@@ -335,6 +335,8 @@ function initializeVideoFeed() {
     loadNextFrame();
 }
 
+let scheduledItems = []; // Array to store scheduled items
+
 // Function to submit the schedule
 function submitSchedule() {
     const time = document.getElementById('schedule-time').value;
@@ -342,12 +344,16 @@ function submitSchedule() {
     const mode = document.getElementById('schedule-mode').value;
     const enabled = document.getElementById('schedule-enable').checked;
 
-    if (enabled && time && temp && mode) {
+    if (time && temp && mode) {
         const scheduleData = {
             time: time,
             temperature: parseInt(temp),
-            mode: mode
+            mode: mode,
+            enabled: enabled
         };
+
+        scheduledItems.push(scheduleData); // Add to the scheduled items array
+        displayScheduledItems(); // Refresh the display
 
         fetchWithTimeout("http://10.0.0.54:5000/set_schedule", {
             method: "POST",
@@ -369,8 +375,51 @@ function submitSchedule() {
         })
         .catch(error => console.error('Error setting schedule:', error));
     } else {
-        alert('Please fill all fields and enable the schedule.');
+        alert('Please fill all fields to set a schedule.');
     }
+}
+
+// Function to display scheduled items
+function displayScheduledItems() {
+    const scheduledItemsContainer = document.getElementById('scheduled-items');
+    scheduledItemsContainer.innerHTML = ''; // Clear existing items
+
+    scheduledItems.forEach((item, index) => {
+        const scheduleItemDiv = document.createElement('div');
+        scheduleItemDiv.classList.add('schedule-item');
+
+        const scheduleInfo = document.createElement('span');
+        scheduleInfo.textContent = `Time: ${item.time}, Temp: ${item.temperature}°F, Mode: ${item.mode.toUpperCase()}`;
+
+        const enableCheckbox = document.createElement('input');
+        enableCheckbox.type = 'checkbox';
+        enableCheckbox.checked = item.enabled;
+        enableCheckbox.onchange = () => toggleScheduleEnable(index, enableCheckbox.checked);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => deleteScheduledItem(index);
+
+        scheduleItemDiv.appendChild(scheduleInfo);
+        scheduleItemDiv.appendChild(enableCheckbox);
+        scheduleItemDiv.appendChild(deleteButton);
+
+        scheduledItemsContainer.appendChild(scheduleItemDiv);
+    });
+}
+
+// Function to toggle the enable state of a scheduled item
+function toggleScheduleEnable(index, enabled) {
+    scheduledItems[index].enabled = enabled;
+    console.log(`Schedule ${index} enabled: ${enabled}`);
+    // Optionally, send an update to the server here
+}
+
+// Function to delete a scheduled item
+function deleteScheduledItem(index) {
+    scheduledItems.splice(index, 1); // Remove the item from the array
+    displayScheduledItems(); // Refresh the display
+    console.log(`Deleted schedule ${index}`);
 }
 
 // Initialize the desired temperature and update the page every second
@@ -397,4 +446,6 @@ window.onload = function() {
     document.getElementById('light-btn').addEventListener('click', activateLight);
 
     initializeVideoFeed(); // Initialize video feed after temperature setup
-}
+
+    displayScheduledItems(); // Display any existing scheduled items
+};
