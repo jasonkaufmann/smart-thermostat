@@ -371,7 +371,7 @@ function submitSchedule() {
     } else {
         alert('Please fill all fields and enable the schedule.');
     }
-
+}
 
 // Initialize the desired temperature and update the page every second
 window.onload = function() {
@@ -397,4 +397,4 @@ window.onload = function() {
     document.getElementById('light-btn').addEventListener('click', activateLight);
 
     initializeVideoFeed(); // Initialize video feed after temperature setup
-};
+}
