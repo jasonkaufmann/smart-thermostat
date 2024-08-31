@@ -223,11 +223,16 @@ import logging
 active_timers = {}
 
 def schedule_action(action_id, action_time, temperature, mode):
+    global active_timers
     """Schedule a thermostat change at a specific time every day."""
     def task():
+        global current_mode, current_desired_temp
         logging.info(f"Executing scheduled task for ID {action_id} at {action_time}")
         set_temperature(temperature)
+        current_desired_temp = temperature
         set_mode_direct(mode)
+        current_mode = mode
+        save_settings()
         # Reschedule the task for the same time the next day
         reschedule_action(action_id, action_time, temperature, mode)
     
