@@ -231,18 +231,36 @@ import logging
 active_timers = {}
 
 def schedule_action(action_id, action_time, temperature, mode):
-    global active_timers
+    global active_timers, scheduled_events
     """Schedule a thermostat change at a specific time every day."""
-    def task():
+
+    def task(action_id):
         global current_desired_temp
-        logging.info(f"Executing scheduled task for ID {action_id} at {action_time}")
-        set_mode_logic(mode)
-        set_temperature_logic(temperature)
-        current_desired_temp = temperature
-        save_settings()
-        # Reschedule the task for the same time the next day
-        reschedule_action(action_id, action_time, temperature, mode)
-    
+        logging.info(f"Executing scheduled task for ID {action_id}")
+
+        # Retrieve the latest scheduled event details for the given action_id
+        event = next((event for event in scheduled_events if event['id'] == action_id), None)
+        
+        if event:
+            # Use the most recent temperature and mode from the scheduled events
+            temperature = event['temperature']
+            mode = event['mode']
+            
+            logging.info(f"Using updated parameters for task ID {action_id}: Temperature={temperature}, Mode={mode}")
+
+            set_mode_logic(mode)
+            set_temperature_logic(temperature)
+            current_desired_temp = temperature
+            save_settings()
+            
+            # Reschedule the task for the same time the next day
+            reschedule_action(action_id, action_time, temperature, mode)
+        else:
+            logging.info(f"Scheduled event ID {action_id} has been deleted. No action will be taken.")
+            # Clean up any remaining references to the deleted action
+            if action_id in active_timers:
+                del active_timers[action_id]  # Remove from active timers
+
     # Calculate the delay in seconds until the next occurrence of the action time
     now = datetime.datetime.now()
     next_action_time = datetime.datetime.combine(now.date(), action_time.time())
@@ -254,7 +272,8 @@ def schedule_action(action_id, action_time, temperature, mode):
     delay = (next_action_time - now).total_seconds()
     
     if delay > 0:
-        timer = threading.Timer(delay, task)
+        # Schedule the task and pass action_id as an argument
+        timer = threading.Timer(delay, task, args=(action_id,))
         timer.start()
         # Store the timer in the dictionary using action_id as the key
         active_timers[action_id] = timer
