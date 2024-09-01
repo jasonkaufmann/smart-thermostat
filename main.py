@@ -14,7 +14,13 @@ import datetime
 import json
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Set up logging to a file
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='smart_thermostat.log',  # Log to this file
+    filemode='a'  # Append to the file (use 'w' to overwrite)
+)
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 # Create the I2C bus interface
@@ -223,7 +229,7 @@ import logging
 active_timers = {}
 
 def schedule_action(action_id, action_time, temperature, mode):
-    global active_timers
+    global active_timers, current_mode, current_desired_temp
     """Schedule a thermostat change at a specific time every day."""
     def task():
         global current_mode, current_desired_temp
