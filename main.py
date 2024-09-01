@@ -215,10 +215,12 @@ def set_temperature_logic(target_temp):
         logging.debug("Lock released in set_temperature_logic")
 
 def set_temperature(target_temp):
+    global current_desired_temp
     """Wrapper to use within Flask context."""
     result = set_temperature_logic(target_temp)
     if result["status"] == "error":
         return jsonify(result), 503
+    current_desired_temp = target_temp
     return jsonify(result)
 
 import threading
@@ -229,15 +231,12 @@ import logging
 active_timers = {}
 
 def schedule_action(action_id, action_time, temperature, mode):
-    global active_timers, current_mode, current_desired_temp
+    global active_timers
     """Schedule a thermostat change at a specific time every day."""
     def task():
-        global current_mode, current_desired_temp
         logging.info(f"Executing scheduled task for ID {action_id} at {action_time}")
+        set_mode_logic(mode)
         set_temperature(temperature)
-        current_desired_temp = temperature
-        set_mode_direct(mode)
-        current_mode = mode
         save_settings()
         # Reschedule the task for the same time the next day
         reschedule_action(action_id, action_time, temperature, mode)
@@ -275,13 +274,6 @@ def cancel_scheduled_action(action_id):
         logging.info(f"Cancelled scheduled task with ID {action_id}")
     else:
         logging.warning(f"No active task found with ID {action_id} to cancel")
-
-
-def set_mode_direct(desired_mode):
-    """Directly set the mode without additional checks."""
-    global current_mode
-    cycle_mode_to_desired(desired_mode)
-    current_mode = desired_mode
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
@@ -442,21 +434,12 @@ def activate_light_route():
         logging.info("Light button actuated")
         return jsonify({"status": "success", "light": "activated"})
 
-
-@app.route("/set_mode", methods=["POST"])
-def set_mode():
+def set_mode_logic(mode):
     global current_mode, last_action_time, current_desired_temp
-    data = request.get_json()
-    
-    if not data or 'mode' not in data:
-        return jsonify({"status": "error", "message": "Invalid data"}), 400
-    
-    mode = data['mode'].lower()
-
     if time.time() - last_action_time > 45:
         logging.info("More than 45 seconds since last action, activating screen")
         activate_screen()
-    
+
     if mode == 'heat':
         cycle_mode_to_desired(MODE_HEAT)
         logging.info("Switched mode to HEAT")
@@ -478,7 +461,18 @@ def set_mode():
         logging.info("Simulation mode is off, saving settings to file")
         # Save the settings to the file
         save_settings()
+
+@app.route("/set_mode", methods=["POST"])
+def set_mode():
+    global current_mode, last_action_time, current_desired_temp
+    data = request.get_json()
     
+    if not data or 'mode' not in data:
+        return jsonify({"status": "error", "message": "Invalid data"}), 400
+    
+    mode = data['mode'].lower()
+
+    set_mode_logic(mode)
     
     return jsonify({"status": "success", "mode": mode})
 
