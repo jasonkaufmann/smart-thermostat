@@ -529,6 +529,7 @@ def set_schedule():
     data = request.get_json()
 
     if not data:
+        logging.error("Invalid data received")
         return jsonify({"status": "error", "message": "Invalid data"}), 400
 
     # Extract data from the request
@@ -539,6 +540,7 @@ def set_schedule():
 
     # Validate data
     if time_str is None or temperature is None or mode is None or enabled is None:
+        logging.error("Missing fields in the request")
         return jsonify({"status": "error", "message": "Missing fields"}), 400
 
     # Parse the time string into a datetime object
@@ -558,6 +560,7 @@ def set_schedule():
     }.get(mode)
 
     if mode_constant is None:
+        logging.error("Invalid mode received")
         return jsonify({"status": "error", "message": "Invalid mode"}), 400
 
     # Only schedule if enabled is true
@@ -576,6 +579,7 @@ def set_schedule():
     
     logging.info(f"Scheduled time: {time_str}, Temperature: {temperature}, Mode: {mode}, Enabled: {enabled}")
     save_scheduled_events()  # Save changes to file
+    logging.info("Scheduled event saved to file")
 
     return jsonify({"status": "success", "message": "Schedule set successfully"}), 200
 
