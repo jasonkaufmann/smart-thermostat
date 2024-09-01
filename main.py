@@ -563,11 +563,11 @@ def set_schedule():
         logging.error("Invalid mode received")
         return jsonify({"status": "error", "message": "Invalid mode"}), 400
 
+    event_id = len(scheduled_events) + 1  # Simple ID assignment (incremental)
     # Only schedule if enabled is true
     if enabled:
-        schedule_action(action_time, temperature, mode_constant)
+        schedule_action(event_id, action_time, temperature, mode_constant)
     
-    event_id = len(scheduled_events) + 1  # Simple ID assignment (incremental)
     # Add the scheduled event to the list
     scheduled_events.append({
         "id": event_id,
