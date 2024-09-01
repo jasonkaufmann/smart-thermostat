@@ -455,12 +455,13 @@ def set_mode_logic(mode):
         logging.info("Switched mode to OFF")
         current_mode = MODE_OFF
     else:
-        return jsonify({"status": "error", "message": "Invalid mode"}), 400
+        return False
 
     if not args.simulate:
         logging.info("Simulation mode is off, saving settings to file")
         # Save the settings to the file
         save_settings()
+    return True
 
 @app.route("/set_mode", methods=["POST"])
 def set_mode():
@@ -472,8 +473,9 @@ def set_mode():
     
     mode = data['mode'].lower()
 
-    set_mode_logic(mode)
-    
+    result = set_mode_logic(mode)
+    if not result:
+        return jsonify({"status": "error", "message": "Invalid mode"}), 400
     return jsonify({"status": "success", "mode": mode})
 
 
