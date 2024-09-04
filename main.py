@@ -12,6 +12,7 @@ import logging
 from flask_cors import CORS
 import datetime
 import json
+import requests
 
 # Set up logging
 # Set up logging to a file
@@ -34,6 +35,8 @@ pca = PCA9685(i2c)
 # Set the PWM frequency to 50Hz, suitable for servos
 logging.debug("Setting PCA9685 frequency to 50Hz")
 pca.frequency = 50
+
+PI_ZERO_HOST = "http://10.0.0.54:5000"
 
 # Create servo objects for channels
 logging.debug("Creating servo objects for channels")
@@ -98,33 +101,33 @@ def capture_frames():
 # Start the frame capture thread
 threading.Thread(target=capture_frames, daemon=True).start()
 
+
 @app.route('/video_feed')
 def video_feed():
-    with lock:
-        if latest_frame is None:
-            return Response(status=404)  # Return a 404 if no frame is available
-        frame = latest_frame
-
-    # Return the current frame as a JPEG image
     return Response(
-        frame,
-        mimetype='image/jpeg',
-        headers={'Content-Type': 'image/jpeg'}
+        requests.get(f"{PI_ZERO_HOST}/video_feed", stream=True).raw,
+        mimetype='multipart/x-mixed-replace; boundary=frame'
     )
 
-def actuate_servo(servo, start_angle, target_angle):
-    """Move the servo from start_angle to target_angle and back."""
+def actuate_servo(servo_name, start_angle, target_angle):
+    """Send a request to the Pi Zero to actuate a servo."""
     global last_action_time
-    logging.info("Actuating servo from angle %d to %d", start_angle, target_angle)
+    logging.info("Sending request to Pi Zero to actuate servo %s from %d to %d", servo_name, start_angle, target_angle)
+    
     if args.simulate:
-        logging.debug(f"Simulating servo movement: {servo} from {start_angle} to {target_angle}")
+        logging.debug(f"Simulating servo movement: {servo_name} from {start_angle} to {target_angle}")
     else:
-        servo.angle = target_angle
-        time.sleep(0.3)  # Delay for 0.3 seconds
-        servo.angle = start_angle
-        time.sleep(0.5)  # Delay for 0.5 seconds
-    last_action_time = time.time()  # Update the last action time
-        
+        try:
+            response = requests.post(
+                f"{PI_ZERO_HOST}/actuate_servo",
+                json={"servo": servo_name, "start_angle": start_angle, "target_angle": target_angle},
+                timeout=5  # Adjust timeout as necessary
+            )
+            response.raise_for_status()
+            last_action_time = time.time()  # Update the last action time
+            logging.info("Servo %s actuated successfully", servo_name)
+        except requests.RequestException as e:
+            logging.error("Error actuating servo: %s", e)
 
 def cycle_mode_to_desired(desired_mode):
     """Cycle through the modes until the desired mode is reached."""
