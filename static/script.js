@@ -20,7 +20,7 @@ function fetchWithTimeout(url, options, timeout = 5000) {
 
 // Function to check server readiness
 function checkServerHealth() {
-    fetchWithTimeout("http://10.0.0.54:5000/health", {
+    fetchWithTimeout("http://blade.local:5000/health", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -46,7 +46,7 @@ function checkServerHealth() {
 
 // Function to initialize the desired temperature
 function initializeDesiredTemperature() {
-    fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
+    fetchWithTimeout("http://blade.local:5000/set_temperature", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -71,7 +71,7 @@ function initializeDesiredTemperature() {
 
 // Function to update the time since last action
 function updateTimeSinceLastAction() {
-    fetchWithTimeout("http://10.0.0.54:5000/time_since_last_action", {
+    fetchWithTimeout("http://blade.local:5000/time_since_last_action", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -95,7 +95,7 @@ function updateTimeSinceLastAction() {
 // Function to update the desired temperature
 function updateDesiredTemperature() {
     if (autoUpdatePaused) return; // Skip update if paused
-    fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
+    fetchWithTimeout("http://blade.local:5000/set_temperature", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -122,7 +122,7 @@ function updateDesiredTemperature() {
 
 // Function to update heat and cool temperature settings
 function updateTemperatureSettings() {
-    fetchWithTimeout("http://10.0.0.54:5000/temperature_settings", {
+    fetchWithTimeout("http://blade.local:5000/temperature_settings", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -155,7 +155,7 @@ function adjustTemperature(change) {
 function sendTemperatureUpdate() {
     if (currentTargetTemp !== currentSetTemp) {
         console.log('Sending temperature update:', currentTargetTemp);
-        fetchWithTimeout("http://10.0.0.54:5000/set_temperature", {
+        fetchWithTimeout("http://blade.local:5000/set_temperature", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -182,7 +182,7 @@ function sendTemperatureUpdate() {
 function sendModeUpdate() {
     if (currentTargetMode !== currentMode) {
         console.log('Sending mode update:', currentTargetMode);
-        fetchWithTimeout("http://10.0.0.54:5000/set_mode", {
+        fetchWithTimeout("http://blade.local:5000/set_mode", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -210,7 +210,7 @@ function sendModeUpdate() {
 // Function to update the current mode
 function updateCurrentMode() {
     if (autoUpdatePaused) return; // Skip update if paused
-    fetchWithTimeout("http://10.0.0.54:5000/current_mode", {
+    fetchWithTimeout("http://blade.local:5000/current_mode", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -248,7 +248,7 @@ function updateTargetMode(radioButton) {
 
 // Function to fetch scheduled events from the server
 function fetchScheduledEvents() {
-    fetchWithTimeout("http://10.0.0.54:5000/get_scheduled_events", {
+    fetchWithTimeout("http://blade.local:5000/get_scheduled_events", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -309,7 +309,7 @@ function toggleScheduleEnable(id, enabled) {
         // Send update to server
         const scheduleData = { enabled: enabled };
 
-        fetchWithTimeout(`http://10.0.0.54:5000/update_schedule/${id}`, {
+        fetchWithTimeout(`http://blade.local:5000/update_schedule/${id}`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -330,7 +330,7 @@ function toggleScheduleEnable(id, enabled) {
 // Function to delete a scheduled item
 function deleteScheduledItem(id) {
     // Send delete request to server
-    fetchWithTimeout(`http://10.0.0.54:5000/delete_schedule/${id}`, {
+    fetchWithTimeout(`http://blade.local:5000/delete_schedule/${id}`, {
         method: "DELETE",
         headers: {
             "Accept": "application/json"
@@ -363,7 +363,7 @@ function submitSchedule() {
             enabled: true // Automatically set new schedules to enabled
         };
 
-        fetchWithTimeout("http://10.0.0.54:5000/set_schedule", {
+        fetchWithTimeout("http://blade.local:5000/set_schedule", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -406,7 +406,7 @@ const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 1000);
 
 // Function to activate the light
 function activateLight() {
-    fetchWithTimeout("http://10.0.0.54:5000/activate_light", {
+    fetchWithTimeout("http://blade.local:5000/activate_light", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

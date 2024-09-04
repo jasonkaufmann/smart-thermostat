@@ -36,9 +36,9 @@ PI_ZERO_HOST = "http://10.0.0.54:5000"
 
 # Create servo objects for channels
 # logging.debug("Creating servo objects for channels")
-# servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
-# servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
-# servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
+servo_down = "down"  # Servo for down temperature
+servo_mode = "mode" # Servo for mode selection
+servo_up = "up"    # Servo for up temperature
 
 # Define the file path to store scheduled events
 SCHEDULE_FILE_PATH = 'scheduled_events.json'
@@ -77,7 +77,7 @@ args = parser.parse_args()
 
 app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
-CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "http://thermostat.local:5000"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "http://blade.local:5000"]}})
 
 # def capture_frames():
 #     global latest_frame
@@ -682,7 +682,6 @@ def main():
             servo_down.angle = 0
             servo_mode.angle = 0
             servo_up.angle = 180  # Return up servo to its default position
-        pca.deinit()
 
 # Run the main function
 if __name__ == "__main__":
