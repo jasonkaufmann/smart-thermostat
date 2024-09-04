@@ -7,6 +7,7 @@ from adafruit_pca9685 import PCA9685
 from adafruit_motor import servo
 from picamera2 import Picamera2
 import cv2
+import threading
 
 app = Flask(__name__)
 
@@ -16,6 +17,8 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # Create a PCA9685 instance
 pca = PCA9685(i2c)
 pca.frequency = 50  # Set the PWM frequency to 50Hz
+
+lock = threading.Lock()
 
 # Create servo objects for channels
 servo_down = servo.Servo(pca.channels[0])
@@ -53,20 +56,37 @@ def handle_actuate_servo():
 
     return jsonify({"status": "success"})
 
+def capture_frames():
+    global latest_frame
+    while True:
+        # Capture frame-by-frame
+        frame = picam2.capture_array()
+        # Convert RGB to BGR
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        # Encode the frame in JPEG format
+        ret, buffer = cv2.imencode('.jpg', frame_bgr)
+        # Update the latest frame with thread safety
+        with lock:
+            latest_frame = buffer.tobytes()
+        # Wait for a short time before capturing the next frame
+        time.sleep(1)  # Adjust the sleep time as needed
+
+# Start the frame capture thread
+threading.Thread(target=capture_frames, daemon=True).start()
+
 @app.route('/video_feed')
 def video_feed():
-    def generate():
-        while True:
-            frame = picam2.capture_array()
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            ret, buffer = cv2.imencode('.jpg', frame_bgr)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            time.sleep(0.1)
-    
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    with lock:
+        if latest_frame is None:
+            return Response(status=404)  # Return a 404 if no frame is available
+        frame = latest_frame
 
+    # Return the current frame as a JPEG image
+    return Response(
+        frame,
+        mimetype='image/jpeg',
+        headers={'Content-Type': 'image/jpeg'}
+    )
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])

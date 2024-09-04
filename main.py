@@ -1,11 +1,7 @@
 from flask import Flask, Response, render_template, request, jsonify
-from picamera2 import Picamera2
+# from picamera2 import Picamera2
 import cv2
 import time
-import board
-import busio
-from adafruit_pca9685 import PCA9685
-from adafruit_motor import servo
 import threading
 import argparse
 import logging
@@ -25,24 +21,24 @@ logging.basicConfig(
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 # Create the I2C bus interface
-logging.debug("Initializing I2C bus interface")
-i2c = busio.I2C(board.SCL, board.SDA)
+# logging.debug("Initializing I2C bus interface")
+# i2c = busio.I2C(board.SCL, board.SDA)
 
 # Create a PCA9685 instance
-logging.debug("Creating PCA9685 instance")
-pca = PCA9685(i2c)
+# logging.debug("Creating PCA9685 instance")
+# pca = PCA9685(i2c)
 
 # Set the PWM frequency to 50Hz, suitable for servos
-logging.debug("Setting PCA9685 frequency to 50Hz")
-pca.frequency = 50
+# logging.debug("Setting PCA9685 frequency to 50Hz")
+# pca.frequency = 50
 
 PI_ZERO_HOST = "http://10.0.0.54:5000"
 
 # Create servo objects for channels
-logging.debug("Creating servo objects for channels")
-servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
-servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
-servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
+# logging.debug("Creating servo objects for channels")
+# servo_down = servo.Servo(pca.channels[0])  # Servo for down temperature
+# servo_mode = servo.Servo(pca.channels[1])  # Servo for mode selection
+# servo_up = servo.Servo(pca.channels[2])    # Servo for up temperature
 
 # Define the file path to store scheduled events
 SCHEDULE_FILE_PATH = 'scheduled_events.json'
@@ -74,10 +70,10 @@ parser.add_argument('--simulate', action='store_true', help='Run in simulation m
 args = parser.parse_args()
 
 # Initialize the camera
-picam2 = Picamera2()
-config = picam2.create_video_configuration(main={"size": (320, 240), "format": "RGB888"})
-picam2.configure(config)
-picam2.start()
+# picam2 = Picamera2()
+# config = picam2.create_video_configuration(main={"size": (320, 240), "format": "RGB888"})
+# picam2.configure(config)
+# picam2.start()
 
 app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
