@@ -1,5 +1,5 @@
-Time since last action: 652.0 seconds
-Current heat temperature: 73°F
-Current cool temperature: 71°F
+Time since last action: 345.0 seconds
+Current heat temperature: 72°F
+Current cool temperature: 67°F
 Ambient temperature: 75°F
 Current mode: HEAT

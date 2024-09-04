@@ -1,0 +1,9 @@
+[
+    {
+        "id": 1,
+        "time": "07:30",
+        "temperature": 72,
+        "mode": "heat",
+        "enabled": true
+    }
+]
