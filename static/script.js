@@ -448,7 +448,7 @@ function changeButtonColor() {
 // Function to initialize the video feed
 function initializeVideoFeed() {
     const video = document.getElementById('video');
-    const videoFeedUrl = video.dataset.videoFeedUrl;
+    const videoFeedUrl = 'http://thermostat.local:5000/video_feed'; // Direct URL to Pi's video feed
 
     // Function to load the next video frame
     function loadNextFrame() {
