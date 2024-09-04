@@ -79,23 +79,23 @@ app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
 CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "http://thermostat.local:5000"]}})
 
-def capture_frames():
-    global latest_frame
-    while True:
-        # Capture frame-by-frame
-        frame = picam2.capture_array()
-        # Convert RGB to BGR
-        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        # Encode the frame in JPEG format
-        ret, buffer = cv2.imencode('.jpg', frame_bgr)
-        # Update the latest frame with thread safety
-        with lock:
-            latest_frame = buffer.tobytes()
-        # Wait for a short time before capturing the next frame
-        time.sleep(1)  # Adjust the sleep time as needed
+# def capture_frames():
+#     global latest_frame
+#     while True:
+#         # Capture frame-by-frame
+#         frame = picam2.capture_array()
+#         # Convert RGB to BGR
+#         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+#         # Encode the frame in JPEG format
+#         ret, buffer = cv2.imencode('.jpg', frame_bgr)
+#         # Update the latest frame with thread safety
+#         with lock:
+#             latest_frame = buffer.tobytes()
+#         # Wait for a short time before capturing the next frame
+#         time.sleep(1)  # Adjust the sleep time as needed
 
-# Start the frame capture thread
-threading.Thread(target=capture_frames, daemon=True).start()
+# # Start the frame capture thread
+# threading.Thread(target=capture_frames, daemon=True).start()
 
 
 @app.route('/video_feed')
