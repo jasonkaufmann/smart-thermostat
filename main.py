@@ -37,7 +37,7 @@ PI_ZERO_HOST = "http://10.0.0.54:5000"
 # Create servo objects for channels
 # logging.debug("Creating servo objects for channels")
 servo_down = "down"  # Servo for down temperature
-servo_mode = "mode" # Servo for mode selection
+servo_mode = "mode"  # Servo for mode selection
 servo_up = "up"    # Servo for up temperature
 
 # Define the file path to store scheduled events
@@ -69,34 +69,9 @@ parser = argparse.ArgumentParser(description="Smart Thermostat Control")
 parser.add_argument('--simulate', action='store_true', help='Run in simulation mode (no servo actuation)')
 args = parser.parse_args()
 
-# Initialize the camera
-# picam2 = Picamera2()
-# config = picam2.create_video_configuration(main={"size": (320, 240), "format": "RGB888"})
-# picam2.configure(config)
-# picam2.start()
-
 app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
-CORS(app, resources={r"/*": {"origins": ["http://localhost:5000", "http://blade.local:5000"]}})
-
-# def capture_frames():
-#     global latest_frame
-#     while True:
-#         # Capture frame-by-frame
-#         frame = picam2.capture_array()
-#         # Convert RGB to BGR
-#         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-#         # Encode the frame in JPEG format
-#         ret, buffer = cv2.imencode('.jpg', frame_bgr)
-#         # Update the latest frame with thread safety
-#         with lock:
-#             latest_frame = buffer.tobytes()
-#         # Wait for a short time before capturing the next frame
-#         time.sleep(1)  # Adjust the sleep time as needed
-
-# # Start the frame capture thread
-# threading.Thread(target=capture_frames, daemon=True).start()
-
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/video_feed')
 def video_feed():
@@ -112,6 +87,7 @@ def actuate_servo(servo_name, start_angle, target_angle):
     
     if args.simulate:
         logging.debug(f"Simulating servo movement: {servo_name} from {start_angle} to {target_angle}")
+        return True
     else:
         try:
             response = requests.post(
@@ -122,15 +98,20 @@ def actuate_servo(servo_name, start_angle, target_angle):
             response.raise_for_status()
             last_action_time = time.time()  # Update the last action time
             logging.info("Servo %s actuated successfully", servo_name)
+            return True
         except requests.RequestException as e:
             logging.error("Error actuating servo: %s", e)
+            return False
 
 def cycle_mode_to_desired(desired_mode):
     """Cycle through the modes until the desired mode is reached."""
     logging.info("Cycling mode to desired mode: %s", ['OFF', 'HEAT', 'COOL'][desired_mode])
     global current_mode
     while current_mode != desired_mode:
-        actuate_servo(servo_mode, 0, 180)
+        result = actuate_servo(servo_mode, 0, 180)
+        if not result:
+            logging.error("Failed to actuate servo_mode to cycle mode")
+            return False
         if current_mode == MODE_OFF:
             current_mode = MODE_HEAT
         elif current_mode == MODE_HEAT:
@@ -140,6 +121,7 @@ def cycle_mode_to_desired(desired_mode):
         else:
             current_mode = MODE_OFF
         logging.debug("Mode changed to: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
+    return True
 
 def set_temperature_logic(target_temp):
     """Core logic for setting the temperature."""
@@ -157,35 +139,17 @@ def set_temperature_logic(target_temp):
         logging.debug("Current mode: %s", ['OFF', 'HEAT', 'COOL'][current_mode])
         logging.debug("Ambient temperature: %d°F", ambient_temp)
 
-        # Adjust mode based on ambient temperature and target
-        # if target_temp > ambient_temp and current_mode != MODE_HEAT:
-        #     if time.time() - last_action_time > 45:
-        #         logging.info("More than 45 seconds since last action, activating screen")
-        #         activate_screen()
-        #     logging.debug("Target temp (%d) > ambient temp (%d) and current mode is not HEAT", target_temp, ambient_temp)
-        #     logging.info("Switching to HEAT mode")
-        #     cycle_mode_to_desired(MODE_HEAT)
-        # elif target_temp < ambient_temp and current_mode != MODE_COOL:
-        #     logging.debug("Target temp (%d) < ambient temp (%d) and current mode is not COOL", target_temp, ambient_temp)
-        #     if time.time() - last_action_time > 45:
-        #         logging.info("More than 45 seconds since last action, activating screen")
-        #         activate_screen()
-        #     logging.info("Switching to COOL mode")
-        #     cycle_mode_to_desired(MODE_COOL)
-
         if current_mode == MODE_HEAT:
             temp_difference = target_temp - current_heat_temp
             logging.debug("Calculated temperature difference for HEAT mode: %d", temp_difference)
-            current_heat_temp = target_temp
-            logging.info("Adjusting heat temperature to %d°F", current_heat_temp)
         elif current_mode == MODE_COOL:
             temp_difference = target_temp - current_cool_temp
             logging.debug("Calculated temperature difference for COOL mode: %d", temp_difference)
-            current_cool_temp = target_temp
-            logging.info("Adjusting cool temperature to %d°F", current_cool_temp)
         else:
             logging.info("No adjustment needed in OFF mode")
             return {"status": "success", "message": "No change needed"}
+
+        success = True  # Initialize success flag
 
         # Adjust temperature
         if temp_difference > 0:  # Increase temperature
@@ -195,8 +159,13 @@ def set_temperature_logic(target_temp):
             logging.info("Increasing temperature by %d degrees", temp_difference)
             for _ in range(temp_difference):
                 logging.debug("Actuating servo to increase temperature")
-                actuate_servo(servo_up, 180, 0)
-            logging.debug("Updated last_action_time after increasing temperature")
+                actuation_result = actuate_servo(servo_up, 180, 0)
+                if not actuation_result:
+                    logging.error("Failed to actuate servo_up to increase temperature")
+                    success = False
+                    break
+            if success:
+                logging.debug("Updated last_action_time after increasing temperature")
         elif temp_difference < 0:  # Decrease temperature
             if time.time() - last_action_time > 45:
                 logging.info("More than 45 seconds since last action, activating screen")
@@ -204,11 +173,28 @@ def set_temperature_logic(target_temp):
             logging.info("Decreasing temperature by %d degrees", abs(temp_difference))
             for _ in range(abs(temp_difference)):
                 logging.debug("Actuating servo to decrease temperature")
-                actuate_servo(servo_down, 0, 180)
-            logging.debug("Updated last_action_time after decreasing temperature")
+                actuation_result = actuate_servo(servo_down, 0, 180)
+                if not actuation_result:
+                    logging.error("Failed to actuate servo_down to decrease temperature")
+                    success = False
+                    break
+            if success:
+                logging.debug("Updated last_action_time after decreasing temperature")
         else:
-            logging.info("Simulation mode is on, not saving settings")
-        return {"status": "success"}
+            logging.info("No temperature change needed")
+            return {"status": "success", "message": "Temperature already at desired value"}
+
+        if success:
+            # Only update the variables if all actuations succeeded
+            if current_mode == MODE_HEAT:
+                current_heat_temp = target_temp
+                logging.info("Adjusted heat temperature to %d°F", current_heat_temp)
+            elif current_mode == MODE_COOL:
+                current_cool_temp = target_temp
+                logging.info("Adjusted cool temperature to %d°F", current_cool_temp)
+            return {"status": "success"}
+        else:
+            return {"status": "error", "message": "Failed to actuate servo"}
     finally:
         lock.release()
         logging.debug("Lock released in set_temperature_logic")
@@ -247,8 +233,16 @@ def schedule_action(action_id, action_time, temperature, mode):
             
             logging.info(f"Using updated parameters for task ID {action_id}: Temperature={temperature}, Mode={mode}")
 
-            set_mode_logic(mode)
-            set_temperature_logic(temperature)
+            mode_result = set_mode_logic(mode)
+            if not mode_result:
+                logging.error(f"Failed to set mode to {mode} for scheduled task ID {action_id}")
+                return
+
+            temp_result = set_temperature_logic(temperature)
+            if temp_result.get("status") != "success":
+                logging.error(f"Failed to set temperature to {temperature} for scheduled task ID {action_id}")
+                return
+
             current_desired_temp = temperature
             save_settings()
             
@@ -299,7 +293,11 @@ def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
     logging.info("Activating screen...")
     global screen_active, last_action_time
-    actuate_servo(servo_mode, 0, 180)
+    result = actuate_servo(servo_mode, 0, 180)
+    if result:
+        logging.info("Screen activated")
+    else:
+        logging.error("Failed to activate screen")
 
 def read_ambient_temperature():
     """Read the ambient temperature from a file."""
@@ -434,14 +432,18 @@ def set_temperature_route():
 
     target_temp = int(data['temperature'])
     logging.info("Received temperature set request")
-    set_temperature(target_temp)
-    current_desired_temp = target_temp
-    logging.info("Set temperature to %d°F", target_temp)
-    if not args.simulate:
-        logging.info("Simulation mode is off, saving settings to file")
-        # Save the settings to the file
-        save_settings()
-    return jsonify({"status": "success", "temperature": target_temp})
+    result = set_temperature_logic(target_temp)
+    if result["status"] == "success":
+        current_desired_temp = target_temp
+        logging.info("Set temperature to %d°F", target_temp)
+        if not args.simulate:
+            logging.info("Simulation mode is off, saving settings to file")
+            # Save the settings to the file
+            save_settings()
+        return jsonify(result)
+    else:
+        logging.error("Failed to set temperature")
+        return jsonify(result), 500
 
 @app.route("/activate_light", methods=["POST"])
 def activate_light_route():
@@ -450,9 +452,13 @@ def activate_light_route():
         logging.warning("Attempted to actuate light button within 45 seconds of last action")
         return jsonify({"status": "error", "message": "Action too soon"}), 429
     else:
-        actuate_servo(servo_mode, 0, 180)
-        logging.info("Light button actuated")
-        return jsonify({"status": "success", "light": "activated"})
+        result = actuate_servo(servo_mode, 0, 180)
+        if result:
+            logging.info("Light button actuated")
+            return jsonify({"status": "success", "light": "activated"})
+        else:
+            logging.error("Failed to actuate light button")
+            return jsonify({"status": "error", "message": "Failed to activate light"}), 500
 
 def set_mode_logic(mode):
     global current_mode, last_action_time, current_desired_temp
@@ -461,19 +467,31 @@ def set_mode_logic(mode):
         activate_screen()
 
     if mode == 'heat':
-        cycle_mode_to_desired(MODE_HEAT)
-        logging.info("Switched mode to HEAT")
-        current_mode = MODE_HEAT
-        current_desired_temp = current_heat_temp
+        success = cycle_mode_to_desired(MODE_HEAT)
+        if success:
+            logging.info("Switched mode to HEAT")
+            current_mode = MODE_HEAT
+            current_desired_temp = current_heat_temp
+        else:
+            logging.error("Failed to switch mode to HEAT")
+            return False
     elif mode == 'cool':
-        cycle_mode_to_desired(MODE_COOL)
-        logging.info("Switched mode to COOL")
-        current_mode = MODE_COOL
-        current_desired_temp = current_cool_temp
+        success = cycle_mode_to_desired(MODE_COOL)
+        if success:
+            logging.info("Switched mode to COOL")
+            current_mode = MODE_COOL
+            current_desired_temp = current_cool_temp
+        else:
+            logging.error("Failed to switch mode to COOL")
+            return False
     elif mode == 'off':
-        cycle_mode_to_desired(MODE_OFF)
-        logging.info("Switched mode to OFF")
-        current_mode = MODE_OFF
+        success = cycle_mode_to_desired(MODE_OFF)
+        if success:
+            logging.info("Switched mode to OFF")
+            current_mode = MODE_OFF
+        else:
+            logging.error("Failed to switch mode to OFF")
+            return False
     else:
         return False
 
@@ -495,7 +513,7 @@ def set_mode():
 
     result = set_mode_logic(mode)
     if not result:
-        return jsonify({"status": "error", "message": "Invalid mode"}), 400
+        return jsonify({"status": "error", "message": "Invalid mode or failed to set mode"}), 400
     return jsonify({"status": "success", "mode": mode})
 
 
@@ -649,9 +667,12 @@ def activate_light():
     if time.time() - last_action_time < 45:
         logging.warning("Attempted to actuate light button within 45 seconds of last action")
     else:
-        actuate_servo(servo_mode, 0, 180)
-        logging.info("Light button actuated")
-    return jsonify({"status": "success"})
+        result = actuate_servo(servo_mode, 0, 180)
+        if result:
+            logging.info("Light button actuated")
+        else:
+            logging.error("Failed to actuate light button")
+    return jsonify({"status": "success" if result else "error"})
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])

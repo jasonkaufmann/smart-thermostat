@@ -123,6 +123,26 @@ img {
     margin-left: 10px;
 }
 
+/* Keyframe animations for flashing */
+@keyframes flash-red {
+    0% { background-color: red; color: white; }
+    100% { background-color: transparent; color: inherit; }
+}
+
+@keyframes flash-green {
+    0% { background-color: green; color: white; }
+    100% { background-color: transparent; color: inherit; }
+}
+
+/* Classes to apply the flash animations */
+.flash-red {
+    animation: flash-red 1s ease-in-out;
+}
+
+.flash-green {
+    animation: flash-green 1s ease-in-out;
+}
+
 /* Responsive styles for smaller screens */
 @media (max-width: 480px) {
     body {

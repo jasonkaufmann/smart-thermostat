@@ -18,9 +18,32 @@ function fetchWithTimeout(url, options, timeout = 5000) {
     }).finally(() => clearTimeout(id));
 }
 
+// Function to update the status message
+function updateStatusMessage(message, success) {
+    const statusMessageElement = document.getElementById('status-message');
+    statusMessageElement.textContent = message;
+
+    // Remove existing animation classes to restart the animation
+    statusMessageElement.classList.remove('flash-red', 'flash-green');
+
+    if (success) {
+        statusMessageElement.style.color = 'green';
+        statusMessageElement.classList.add('flash-green');
+    } else {
+        statusMessageElement.style.color = 'red';
+        statusMessageElement.classList.add('flash-red');
+    }
+
+    // Remove the animation class after the animation ends to allow re-triggering
+    setTimeout(() => {
+        statusMessageElement.classList.remove('flash-red', 'flash-green');
+    }, 1000); // Duration matches the animation duration in CSS
+}
+
+
 // Function to check server readiness
 function checkServerHealth() {
-    fetchWithTimeout("http://blade.local:5000/health", {
+    fetchWithTimeout("http://blade:5000/health", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -46,7 +69,7 @@ function checkServerHealth() {
 
 // Function to initialize the desired temperature
 function initializeDesiredTemperature() {
-    fetchWithTimeout("http://blade.local:5000/set_temperature", {
+    fetchWithTimeout("http://blade:5000/set_temperature", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -71,7 +94,7 @@ function initializeDesiredTemperature() {
 
 // Function to update the time since last action
 function updateTimeSinceLastAction() {
-    fetchWithTimeout("http://blade.local:5000/time_since_last_action", {
+    fetchWithTimeout("http://blade:5000/time_since_last_action", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -95,7 +118,7 @@ function updateTimeSinceLastAction() {
 // Function to update the desired temperature
 function updateDesiredTemperature() {
     if (autoUpdatePaused) return; // Skip update if paused
-    fetchWithTimeout("http://blade.local:5000/set_temperature", {
+    fetchWithTimeout("http://blade:5000/set_temperature", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -122,7 +145,7 @@ function updateDesiredTemperature() {
 
 // Function to update heat and cool temperature settings
 function updateTemperatureSettings() {
-    fetchWithTimeout("http://blade.local:5000/temperature_settings", {
+    fetchWithTimeout("http://blade:5000/temperature_settings", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -155,7 +178,7 @@ function adjustTemperature(change) {
 function sendTemperatureUpdate() {
     if (currentTargetTemp !== currentSetTemp) {
         console.log('Sending temperature update:', currentTargetTemp);
-        fetchWithTimeout("http://blade.local:5000/set_temperature", {
+        fetchWithTimeout("http://blade:5000/set_temperature", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -169,10 +192,12 @@ function sendTemperatureUpdate() {
             }
             userNotRequestingChange = true;
             autoUpdatePaused = false; // Resume automatic updates after successful change
+            updateStatusMessage("Temperature updated successfully.", true);
             return response.json();
         })
         .catch(error => {
             console.error('Error sending temperature update:', error);
+            updateStatusMessage("Failed to update temperature.", false);
             autoUpdatePaused = false; // Resume updates even if there's an error
         });
     }
@@ -182,7 +207,7 @@ function sendTemperatureUpdate() {
 function sendModeUpdate() {
     if (currentTargetMode !== currentMode) {
         console.log('Sending mode update:', currentTargetMode);
-        fetchWithTimeout("http://blade.local:5000/set_mode", {
+        fetchWithTimeout("http://blade:5000/set_mode", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -198,10 +223,12 @@ function sendModeUpdate() {
             document.getElementById("current-mode").innerText = currentMode.toUpperCase();
             userNotRequestingChangeMode = true;
             autoUpdatePaused = false; // Resume automatic updates after successful change
+            updateStatusMessage(`Mode set to ${currentMode.toUpperCase()}.`, true);
             return response.json();
         })
         .catch(error => {
             console.error('Error sending mode update:', error);
+            updateStatusMessage("Failed to update mode.", false);
             autoUpdatePaused = false; // Resume updates even if there's an error
         });
     }
@@ -210,7 +237,7 @@ function sendModeUpdate() {
 // Function to update the current mode
 function updateCurrentMode() {
     if (autoUpdatePaused) return; // Skip update if paused
-    fetchWithTimeout("http://blade.local:5000/current_mode", {
+    fetchWithTimeout("http://blade:5000/current_mode", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -248,7 +275,7 @@ function updateTargetMode(radioButton) {
 
 // Function to fetch scheduled events from the server
 function fetchScheduledEvents() {
-    fetchWithTimeout("http://blade.local:5000/get_scheduled_events", {
+    fetchWithTimeout("http://blade:5000/get_scheduled_events", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -309,7 +336,7 @@ function toggleScheduleEnable(id, enabled) {
         // Send update to server
         const scheduleData = { enabled: enabled };
 
-        fetchWithTimeout(`http://blade.local:5000/update_schedule/${id}`, {
+        fetchWithTimeout(`http://blade:5000/update_schedule/${id}`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -322,15 +349,19 @@ function toggleScheduleEnable(id, enabled) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             console.log('Schedule updated successfully on server');
+            updateStatusMessage('Schedule updated successfully.', true);
         })
-        .catch(error => console.error('Error updating schedule on server:', error));
+        .catch(error => {
+            console.error('Error updating schedule on server:', error);
+            updateStatusMessage('Failed to update schedule.', false);
+        });
     }
 }
 
 // Function to delete a scheduled item
 function deleteScheduledItem(id) {
     // Send delete request to server
-    fetchWithTimeout(`http://blade.local:5000/delete_schedule/${id}`, {
+    fetchWithTimeout(`http://blade:5000/delete_schedule/${id}`, {
         method: "DELETE",
         headers: {
             "Accept": "application/json"
@@ -341,12 +372,15 @@ function deleteScheduledItem(id) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         console.log(`Schedule with ID ${id} deleted successfully from server`);
-        
+        updateStatusMessage('Schedule deleted successfully.', true);
         // If successful, remove the item from the array and refresh display
         scheduledItems = scheduledItems.filter(event => event.id !== id); // Remove the item by id
         displayScheduledItems(); // Refresh the display
     })
-    .catch(error => console.error('Error deleting schedule from server:', error));
+    .catch(error => {
+        console.error('Error deleting schedule from server:', error);
+        updateStatusMessage('Failed to delete schedule.', false);
+    });
 }
 
 // Function to submit the schedule
@@ -363,7 +397,7 @@ function submitSchedule() {
             enabled: true // Automatically set new schedules to enabled
         };
 
-        fetchWithTimeout("http://blade.local:5000/set_schedule", {
+        fetchWithTimeout("http://blade:5000/set_schedule", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -375,6 +409,7 @@ function submitSchedule() {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
+            updateStatusMessage('Schedule set successfully.', true);
             return response.json();
         })
         .then(data => {
@@ -382,7 +417,10 @@ function submitSchedule() {
             //alert('Schedule set successfully!');
             fetchScheduledEvents(); // Refresh the list after setting a new schedule
         })
-        .catch(error => console.error('Error setting schedule:', error));
+        .catch(error => {
+            console.error('Error setting schedule:', error);
+            updateStatusMessage('Failed to set schedule.', false);
+        });
     } else {
         alert('Please fill all fields to set a schedule.');
     }
@@ -406,7 +444,7 @@ const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 1000);
 
 // Function to activate the light
 function activateLight() {
-    fetchWithTimeout("http://blade.local:5000/activate_light", {
+    fetchWithTimeout("http://blade:5000/activate_light", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -418,10 +456,14 @@ function activateLight() {
             console.error(`HTTP error! status: ${response.status}`);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
+        updateStatusMessage('Light activated successfully.', true);
         return response.json();
     })
     .then(data => console.log('Light activation response:', data))
-    .catch(error => console.error('Error activating light:', error));
+    .catch(error => {
+        console.error('Error activating light:', error);
+        updateStatusMessage('Failed to activate light.', false);
+    });
 }
 
 // Function to reload the page if initial requests fail
@@ -448,7 +490,7 @@ function changeButtonColor() {
 // Function to initialize the video feed
 function initializeVideoFeed() {
     const video = document.getElementById('video');
-    const videoFeedUrl = 'http://thermostat.local:5000/video_feed'; // Direct URL to Pi's video feed
+    const videoFeedUrl = 'http://thermostat:5000/video_feed'; // Direct URL to Pi's video feed
 
     // Function to load the next video frame
     function loadNextFrame() {
@@ -496,12 +538,15 @@ window.onload = function() {
     });
 
     // Add event listener for light button
-    document.getElementById('light-btn').addEventListener('click', activateLight);
+    document.getElementById('light-btn').addEventListener('click', () => {
+        activateLight();
+        changeButtonColor();
+    });
 
     initializeVideoFeed(); // Initialize video feed after temperature setup
 
     displayScheduledItems(); // Display any existing scheduled items
 
-    // Poll the server every 10 seconds for new scheduled events
+    // Poll the server every 3 seconds for new scheduled events
     setInterval(fetchScheduledEvents, 3000);
 };
