@@ -556,6 +556,29 @@ def update_schedule(schedule_id):
     return jsonify({"status": "error", "message": f"Schedule with ID {schedule_id} not found"}), 404
 
 
+@app.route('/video_feed')
+def video_feed():
+    def generate():
+        try:
+            # Stream the video feed from the Pi Zero
+            response = requests.get(f"{PI_ZERO_HOST}/video_feed", stream=True, timeout=5)
+            response.raise_for_status()
+
+            # Yield each chunk to the client
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    yield chunk
+        except requests.RequestException as e:
+            logging.error("Error fetching video feed from Pi Zero: %s", e)
+            # Optionally, yield a default image or an error message
+            yield b''
+
+    return Response(
+        generate(),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+
+
 @app.route("/set_schedule", methods=["POST"])
 def set_schedule():
     global scheduled_events
