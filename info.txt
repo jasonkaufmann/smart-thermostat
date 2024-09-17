@@ -1,5 +1,0 @@
-Time since last action: 489.7 seconds
-Current heat temperature: 74°F
-Current cool temperature: 70°F
-Ambient temperature: 75°F
-Current mode: HEAT

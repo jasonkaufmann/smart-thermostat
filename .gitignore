@@ -1,3 +1,6 @@
 smart_thermostat.log
 nohup.out
 oom_monitor.sh
+info.txt
+temp.txt
+settings.txt
