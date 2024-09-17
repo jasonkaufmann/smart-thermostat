@@ -561,6 +561,7 @@ def update_schedule(schedule_id):
 
 @app.route('/receive_image', methods=['POST'])
 def receive_image():
+    logging.info("Received request for /receive_image endpoint")
     global latest_image_path
     if 'image' not in request.files:
         return jsonify({"status": "error", "message": "No image part"}), 400

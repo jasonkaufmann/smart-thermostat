@@ -1,4 +1,3 @@
-# File: pi_zero_servo_control.py
 from flask import Flask, jsonify, request
 import time
 import board
@@ -9,6 +8,7 @@ from picamera2 import Picamera2
 import threading
 import requests
 import logging
+import cv2 
 
 app = Flask(__name__)
 
@@ -34,7 +34,7 @@ picam2.configure(config)
 picam2.start()
 
 # Blade server URL
-BLADE_SERVER_URL = 'http://10.0.0.213'  # Update with the actual IP or hostname
+BLADE_SERVER_URL = 'http://10.0.0.213:5000'  # Update with the actual IP or hostname
 
 # Create a session for persistent connections
 session = requests.Session()
@@ -65,7 +65,9 @@ def handle_actuate_servo():
     return jsonify({"status": "success"})
 
 def capture_and_send_image():
-    for frame in picam2.capture_continuous():
+    while True:
+        # Capture an image
+        frame = picam2.capture_array()
         # Extract the grayscale component
         grayscale_frame = frame[:frame.shape[0]//2, :]
         # Encode the frame in JPEG format with lower quality
