@@ -109,7 +109,7 @@ def health_check():
 if __name__ == '__main__':
     # Configure logging
     logging.basicConfig(
-        level=logging.WARNING,  # Set to WARNING to reduce CPU usage
+        level=logging.DEBUG,
         format='%(asctime)s - %(levelname)s - %(message)s',
         filename='pi_zero.log',
         filemode='a'
