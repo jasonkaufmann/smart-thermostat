@@ -501,12 +501,12 @@ function initializeVideoFeed() {
 
         imgLoader.onload = () => {
             video.src = newFrameUrl; // Update the video source only after loading
-            setTimeout(loadNextFrame, 5000); // Load the next frame after 1 second
+            setTimeout(loadNextFrame, 10000); // Load the next frame after 1 second
         };
 
         imgLoader.onerror = () => {
             console.error("Failed to load video frame, retrying...");
-            setTimeout(loadNextFrame, 5000); // Retry loading the frame after 1 second
+            setTimeout(loadNextFrame, 10000); // Retry loading the frame after 1 second
         };
 
         // Start loading the new frame

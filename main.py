@@ -9,6 +9,7 @@ from flask_cors import CORS
 import datetime
 import json
 import requests
+import os 
 
 # Set up logging
 # Set up logging to a file
@@ -18,6 +19,14 @@ logging.basicConfig(
     filename='smart_thermostat.log',  # Log to this file
     filemode='a'  # Append to the file (use 'w' to overwrite)
 )
+
+# Global variables
+latest_image_path = None
+# Directory to save images
+IMAGE_SAVE_PATH = 'static/images'
+os.makedirs(IMAGE_SAVE_PATH, exist_ok=True)
+
+
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 # Create the I2C bus interface
@@ -73,12 +82,6 @@ app = Flask(__name__)
 # Updated CORS configuration to allow specific origins
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(
-        requests.get(f"{PI_ZERO_HOST}/video_feed", stream=True).raw,
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
 
 def actuate_servo(servo_name, start_angle, target_angle):
     """Send a request to the Pi Zero to actuate a servo."""
@@ -556,22 +559,55 @@ def update_schedule(schedule_id):
     return jsonify({"status": "error", "message": f"Schedule with ID {schedule_id} not found"}), 404
 
 
+@app.route('/receive_image', methods=['POST'])
+def receive_image():
+    global latest_image_path
+    if 'image' not in request.files:
+        return jsonify({"status": "error", "message": "No image part"}), 400
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+    if file:
+        # Save the image
+        filename = 'latest_image.jpg'
+        filepath = os.path.join(IMAGE_SAVE_PATH, filename)
+        file.save(filepath)
+        with lock:
+            latest_image_path = filepath  # Update the global variable
+        logging.info("Received and saved new image: %s", filepath)
+        return jsonify({"status": "success"}), 200
+    else:
+        return jsonify({"status": "error", "message": "File not allowed"}), 400
+
+
+
 @app.route('/video_feed')
 def video_feed():
+    logging.info("Received request for /video_feed endpoint")
+    
     def generate():
-        try:
-            # Stream the video feed from the Pi Zero
-            response = requests.get(f"{PI_ZERO_HOST}/video_feed", stream=True, timeout=5)
-            response.raise_for_status()
+        while True:
+            with lock:
+                if latest_image_path and os.path.exists(latest_image_path):
+                    with open(latest_image_path, 'rb') as img_file:
+                        frame = img_file.read()
+                        logging.debug("Read latest image from disk")
+                else:
+                    logging.warning("No image available to stream")
+                    frame = None
 
-            # Yield each chunk to the client
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    yield chunk
-        except requests.RequestException as e:
-            logging.error("Error fetching video feed from Pi Zero: %s", e)
-            # Optionally, yield a default image or an error message
-            yield b''
+            if frame:
+                # Prepare the frame to be sent in a multipart response
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+                logging.debug("Yielded a frame to client")
+            else:
+                # If no image is available, wait before retrying
+                time.sleep(1)
+                continue
+
+            # Sleep for a short duration before sending the next frame
+            time.sleep(5)  # Match the interval at which new images are received
 
     return Response(
         generate(),
