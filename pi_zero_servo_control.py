@@ -96,7 +96,7 @@ def capture_and_send_image():
         del buffer
         del image_data
         # Wait for 10 seconds before capturing the next frame
-        time.sleep(2)
+        time.sleep(4)
 
 # Start the image capture and send thread
 threading.Thread(target=capture_and_send_image, daemon=True).start()
