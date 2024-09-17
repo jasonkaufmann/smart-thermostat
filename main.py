@@ -608,7 +608,7 @@ def video_feed():
                 continue
 
             # Sleep for a short duration before sending the next frame
-            time.sleep(5)  # Match the interval at which new images are received
+            time.sleep(2)  # Match the interval at which new images are received
 
     return Response(
         generate(),

@@ -501,7 +501,7 @@ function initializeVideoFeed() {
 
         imgLoader.onload = () => {
             video.src = newFrameUrl; // Update the video source only after loading
-            setTimeout(loadNextFrame, 10000); // Load the next frame after 1 second
+            setTimeout(loadNextFrame, 3000); // Load the next frame after 1 second
         };
 
         imgLoader.onerror = () => {
