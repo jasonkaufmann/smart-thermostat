@@ -587,33 +587,30 @@ def video_feed():
     logging.info("Received request for /video_feed endpoint")
     
     def generate():
-        while True:
-            with lock:
-                if latest_image_path and os.path.exists(latest_image_path):
-                    with open(latest_image_path, 'rb') as img_file:
-                        frame = img_file.read()
-                        logging.debug("Read latest image from disk")
-                else:
-                    logging.warning("No image available to stream")
-                    frame = None
-
-            if frame:
-                # Prepare the frame to be sent in a multipart response
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-                logging.debug("Yielded a frame to client")
+        with lock:
+            if latest_image_path and os.path.exists(latest_image_path):
+                with open(latest_image_path, 'rb') as img_file:
+                    frame = img_file.read()
+                    logging.debug("Read latest image from disk")
             else:
-                # If no image is available, wait before retrying
-                time.sleep(1)
-                continue
+                logging.warning("No image available to stream")
+                frame = None
 
-            # Sleep for a short duration before sending the next frame
-            time.sleep(2)  # Match the interval at which new images are received
+        if frame:
+            # Prepare the frame to be sent in a multipart response
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            logging.debug("Yielded a frame to client")
+        else:
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + b'\r\n')
+            logging.error("No image available to yield")
 
     return Response(
         generate(),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
+
 
 
 @app.route("/set_schedule", methods=["POST"])
