@@ -66,6 +66,7 @@ def handle_actuate_servo():
 
 def capture_and_send_image():
     while True:
+        logging.info("Capturing and sending image")
         # Capture an image
         frame = picam2.capture_array()
         # Extract the grayscale component
