@@ -27,7 +27,7 @@ servo_up = servo.Servo(pca.channels[2])
 # Initialize the camera with lower resolution and frame rate
 picam2 = Picamera2()
 config = picam2.create_video_configuration(
-    main={"size": (380, 240), "format": "YUV420"},
+    main={"size": (800, 600), "format": "YUV420"},
     controls={"FrameRate": 5}  # Limit to 5 frames per second
 )
 picam2.configure(config)
