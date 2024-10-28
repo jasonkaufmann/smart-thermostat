@@ -41,7 +41,7 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 # logging.debug("Setting PCA9685 frequency to 50Hz")
 # pca.frequency = 50
 
-PI_ZERO_HOST = "http://10.0.0.54:5000"
+PI_ZERO_HOST = "http://10.0.0.191:5000"
 
 # Create servo objects for channels
 # logging.debug("Creating servo objects for channels")
