@@ -64,39 +64,89 @@ def handle_actuate_servo():
 
     return jsonify({"status": "success"})
 
+def setup_camera():
+    """Initialize and configure the camera with retry logic"""
+    global picam2
+    try:
+        # Clean up previous instance if exists
+        if picam2:
+            picam2.stop()
+            picam2.close()
+            
+        picam2 = Picamera2()
+        config = picam2.create_video_configuration(
+            main={"size": (800, 600), "format": "YUV420"},
+            controls={"FrameRate": 5}
+        )
+        picam2.configure(config)
+        picam2.start()
+        logging.info("Camera initialized successfully")
+        return True
+    except Exception as e:
+        logging.error(f"Camera initialization failed: {e}")
+        return False
+
 def capture_and_send_image():
+    retry_delay = 5  # Initial retry delay in seconds
+    max_retry_delay = 60  # Maximum retry delay
+    camera_initialized = False
+    
     while True:
-        logging.info("Capturing and sending image")
-        # Capture an image
-        frame = picam2.capture_array()
-        # Extract the grayscale component
-        grayscale_frame = frame[:frame.shape[0]//2, :]
-        # Encode the frame in JPEG format with lower quality
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 70]  # Quality from 0 to 100
-        ret, buffer = cv2.imencode('.jpg', grayscale_frame, encode_param)
-        if not ret:
-            logging.error("Failed to encode image")
-            continue
-        # Prepare the image data for sending
-        image_data = buffer.tobytes()
-        # Send the image to the blade server
         try:
-            response = session.post(
-                f"{BLADE_SERVER_URL}/receive_image",
-                files={'image': ('image.jpg', image_data, 'image/jpeg')},
-                timeout=10  # Set a timeout for the request
-            )
-            response.raise_for_status()
-            logging.info("Image sent successfully")
-        except requests.RequestException as e:
-            logging.error(f"Error sending image: {e}")
-        # Release resources
-        del frame
-        del grayscale_frame
-        del buffer
-        del image_data
-        # Wait for 10 seconds before capturing the next frame
-        time.sleep(4)
+            if not camera_initialized:
+                camera_initialized = setup_camera()
+                if not camera_initialized:
+                    time.sleep(retry_delay)
+                    retry_delay = min(retry_delay * 2, max_retry_delay)
+                    continue
+                else:
+                    retry_delay = 5  # Reset retry delay after success
+
+            logging.info("Capturing and sending image")
+            frame = picam2.capture_array()
+            # Extract the grayscale component
+            grayscale_frame = frame[:frame.shape[0]//2, :]
+            # Encode the frame in JPEG format with lower quality
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 70]  # Quality from 0 to 100
+            ret, buffer = cv2.imencode('.jpg', grayscale_frame, encode_param)
+            if not ret:
+                logging.error("Failed to encode image")
+                continue
+            # Prepare the image data for sending
+            image_data = buffer.tobytes()
+            # Send the image to the blade server
+            try:
+                response = session.post(
+                    f"{BLADE_SERVER_URL}/receive_image",
+                    files={'image': ('image.jpg', image_data, 'image/jpeg')},
+                    timeout=10  # Set a timeout for the request
+                )
+                response.raise_for_status()
+                logging.info("Image sent successfully")
+            except requests.RequestException as e:
+                logging.error(f"Error sending image: {e}")
+            # Release resources
+            del frame
+            del grayscale_frame
+            del buffer
+            del image_data
+            
+            # Reset retry delay after successful capture
+            retry_delay = 5
+            time.sleep(4)
+
+        except Exception as e:
+            logging.error(f"Camera error: {e}")
+            camera_initialized = False
+            try:
+                picam2.stop()
+                picam2.close()
+            except Exception as cleanup_error:
+                logging.error(f"Error cleaning up camera: {cleanup_error}")
+            
+            # Wait with exponential backoff
+            time.sleep(retry_delay)
+            retry_delay = min(retry_delay * 2, max_retry_delay)
 
 # Start the image capture and send thread
 threading.Thread(target=capture_and_send_image, daemon=True).start()
