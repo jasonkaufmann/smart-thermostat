@@ -133,7 +133,7 @@ def capture_and_send_image():
             
             # Reset retry delay after successful capture
             retry_delay = 5
-            time.sleep(4)
+            time.sleep(3)
 
         except Exception as e:
             logging.error(f"Camera error: {e}")
