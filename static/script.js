@@ -1,12 +1,30 @@
-let scheduledItems = []; // Array to store scheduled items
+// Global variables
 let currentTargetTemp;
 let currentSetTemp;
 let currentMode;
 let currentTargetMode;
 let userNotRequestingChange = true;
 let userNotRequestingChangeMode = true;
-let autoUpdatePaused = false; // New flag to pause auto-updates during user interactions
-let timeout = 10000; // Timeout for fetch requests
+let autoUpdatePaused = false;
+let timeout = 10000;
+
+// Helper function to show feedback messages
+function showFeedback(message, isError = false, isWarning = false) {
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = message;
+    feedback.classList.remove('error', 'warning');
+    
+    if (isError) {
+        feedback.classList.add('error');
+    } else if (isWarning) {
+        feedback.classList.add('warning');
+    }
+    
+    feedback.style.display = 'block';
+    setTimeout(() => {
+        feedback.style.display = 'none';
+    }, 3000);
+}
 
 // Utility function to fetch with a timeout
 function fetchWithTimeout(url, options, timeout = 5000) {
@@ -17,29 +35,6 @@ function fetchWithTimeout(url, options, timeout = 5000) {
         signal: controller.signal
     }).finally(() => clearTimeout(id));
 }
-
-// Function to update the status message
-function updateStatusMessage(message, success) {
-    const statusMessageElement = document.getElementById('status-message');
-    statusMessageElement.textContent = message;
-
-    // Remove existing animation classes to restart the animation
-    statusMessageElement.classList.remove('flash-red', 'flash-green');
-
-    if (success) {
-        statusMessageElement.style.color = 'green';
-        statusMessageElement.classList.add('flash-green');
-    } else {
-        statusMessageElement.style.color = 'red';
-        statusMessageElement.classList.add('flash-red');
-    }
-
-    // Remove the animation class after the animation ends to allow re-triggering
-    setTimeout(() => {
-        statusMessageElement.classList.remove('flash-red', 'flash-green');
-    }, 1000); // Duration matches the animation duration in CSS
-}
-
 
 // Function to check server readiness
 function checkServerHealth() {
@@ -59,11 +54,11 @@ function checkServerHealth() {
         return response.json();
     })
     .then(data => {
-        initializeDesiredTemperature(); // Proceed with initialization
+        initializeDesiredTemperature();
     })
     .catch(error => {
         console.error('Server health check failed, retrying:', error);
-        setTimeout(checkServerHealth, 2000); // Retry after 2 seconds
+        setTimeout(checkServerHealth, 2000);
     });
 }
 
@@ -87,44 +82,35 @@ function initializeDesiredTemperature() {
         currentSetTemp = data.desired_temperature;
         currentTargetTemp = currentSetTemp;
         document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
-        document.getElementById("desired-temperature").value = currentSetTemp;
+        document.getElementById("desired-temperature").innerText = currentSetTemp;
     })
     .catch(error => reloadPageIfNeeded(error));
 }
 
-// Function to update the time since last action
-function updateTimeSinceLastAction() {
-    fetchWithTimeout("http://blade:5000/time_since_last_action", {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    }, timeout)
-    .then(response => {
-        if (!response.ok) {
-            console.error(`HTTP error! status: ${response.status}`);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        document.getElementById("time-since-last-action").innerText = data.time_since_last_action + " seconds";
-    })
-    .catch(error => console.error('Error fetching time since last action:', error));
+// Function to update mode buttons
+function updateModeButtons(mode) {
+    document.querySelectorAll('.btn-mode').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.querySelector(`.btn-mode[data-mode="${mode.toLowerCase()}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
 }
 
-// Function to update the desired temperature
-function updateDesiredTemperature() {
-    if (autoUpdatePaused) return; // Skip update if paused
-    fetchWithTimeout("http://blade:5000/set_temperature", {
-        method: 'GET',
-        mode: 'cors',
+// Function to set mode
+function setMode(mode) {
+    currentTargetMode = mode;
+    userNotRequestingChangeMode = false;
+    autoUpdatePaused = true;
+    
+    fetchWithTimeout("http://blade:5000/set_mode", {
+        method: "POST",
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({ mode: mode })
     }, timeout)
     .then(response => {
         if (!response.ok) {
@@ -133,48 +119,36 @@ function updateDesiredTemperature() {
         return response.json();
     })
     .then(data => {
-        currentSetTemp = data.desired_temperature;
-        document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
-        if (currentSetTemp !== currentTargetTemp && userNotRequestingChange) {
-            currentTargetTemp = currentSetTemp;
-            document.getElementById("desired-temperature").value = currentSetTemp;
-        }
+        currentMode = mode;
+        document.getElementById("current-mode").innerText = mode.toUpperCase();
+        updateModeButtons(mode);
+        userNotRequestingChangeMode = true;
+        autoUpdatePaused = false;
+        showFeedback(`Mode set to ${mode.toUpperCase()}`);
     })
-    .catch(error => console.error('Error fetching desired temperature:', error));
+    .catch(error => {
+        console.error('Error setting mode:', error);
+        showFeedback("Failed to set mode", true);
+        autoUpdatePaused = false;
+    });
 }
 
-// Function to update heat and cool temperature settings
-function updateTemperatureSettings() {
-    fetchWithTimeout("http://blade:5000/temperature_settings", {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    }, timeout)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        document.getElementById("heat-temperature").innerText = data.current_heat_temp + "°F";
-        document.getElementById("cool-temperature").innerText = data.current_cool_temp + "°F";
-    })
-    .catch(error => console.error('Error fetching temperature settings:', error));
-}
-
-// Function to adjust the temperature
+// Function to adjust temperature
 function adjustTemperature(change) {
     currentTargetTemp += change;
-    document.getElementById("desired-temperature").value = currentTargetTemp;
+    if (currentTargetTemp < 50) currentTargetTemp = 50;
+    if (currentTargetTemp > 90) currentTargetTemp = 90;
+    
+    document.getElementById("desired-temperature").innerText = currentTargetTemp;
     userNotRequestingChange = false;
-    autoUpdatePaused = true; // Pause automatic updates during manual adjustment
+    autoUpdatePaused = true;
+    
+    // Send update after a short delay
+    clearTimeout(window.tempUpdateTimer);
+    window.tempUpdateTimer = setTimeout(sendTemperatureUpdate, 500);
 }
 
-// Function to send the temperature update to the server
+// Function to send temperature update
 function sendTemperatureUpdate() {
     if (currentTargetTemp !== currentSetTemp) {
         console.log('Sending temperature update:', currentTargetTemp);
@@ -190,53 +164,92 @@ function sendTemperatureUpdate() {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            userNotRequestingChange = true;
-            autoUpdatePaused = false; // Resume automatic updates after successful change
-            updateStatusMessage("Temperature updated successfully.", true);
             return response.json();
+        })
+        .then(data => {
+            userNotRequestingChange = true;
+            autoUpdatePaused = false;
+            showFeedback("Temperature updated successfully");
         })
         .catch(error => {
             console.error('Error sending temperature update:', error);
-            updateStatusMessage("Failed to update temperature.", false);
-            autoUpdatePaused = false; // Resume updates even if there's an error
+            showFeedback("Failed to update temperature", true);
+            autoUpdatePaused = false;
         });
     }
 }
 
-// Function to send a mode update to the server
-function sendModeUpdate() {
-    if (currentTargetMode !== currentMode) {
-        console.log('Sending mode update:', currentTargetMode);
-        fetchWithTimeout("http://blade:5000/set_mode", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify({ mode: currentTargetMode })
-        }, timeout)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            currentMode = currentTargetMode;
-            document.getElementById("current-mode").innerText = currentMode.toUpperCase();
-            userNotRequestingChangeMode = true;
-            autoUpdatePaused = false; // Resume automatic updates after successful change
-            updateStatusMessage(`Mode set to ${currentMode.toUpperCase()}.`, true);
-            return response.json();
-        })
-        .catch(error => {
-            console.error('Error sending mode update:', error);
-            updateStatusMessage("Failed to update mode.", false);
-            autoUpdatePaused = false; // Resume updates even if there's an error
-        });
-    }
+// Function to activate light
+function activateLight() {
+    const lightBtn = document.getElementById('light-btn');
+    lightBtn.classList.add('active');
+    
+    fetchWithTimeout("http://blade:5000/activate_light", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+    }, timeout)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        showFeedback('Light activated successfully');
+        setTimeout(() => {
+            lightBtn.classList.remove('active');
+        }, 3000);
+    })
+    .catch(error => {
+        console.error('Error activating light:', error);
+        showFeedback('Failed to activate light', true);
+        lightBtn.classList.remove('active');
+    });
 }
 
-// Function to update the current mode
-function updateCurrentMode() {
-    if (autoUpdatePaused) return; // Skip update if paused
+// Function to update all status values
+function updateStatus() {
+    if (autoUpdatePaused) return;
+    
+    // Update time since last action
+    fetchWithTimeout("http://blade:5000/time_since_last_action", {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    }, timeout)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("time-since-last-action").innerText = data.time_since_last_action + "s ago";
+    })
+    .catch(error => console.error('Error fetching time since last action:', error));
+    
+    // Update desired temperature
+    fetchWithTimeout("http://blade:5000/set_temperature", {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    }, timeout)
+    .then(response => response.json())
+    .then(data => {
+        currentSetTemp = data.desired_temperature;
+        document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
+        if (currentSetTemp !== currentTargetTemp && userNotRequestingChange) {
+            currentTargetTemp = currentSetTemp;
+            document.getElementById("desired-temperature").innerText = currentSetTemp;
+        }
+    })
+    .catch(error => console.error('Error fetching desired temperature:', error));
+    
+    // Update current mode
     fetchWithTimeout("http://blade:5000/current_mode", {
         method: 'GET',
         mode: 'cors',
@@ -245,36 +258,51 @@ function updateCurrentMode() {
             'Content-Type': 'application/json'
         }
     }, timeout)
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        currentMode = data.current_mode.toLowerCase(); // Ensure mode is in lowercase
+        currentMode = data.current_mode.toLowerCase();
         if (currentTargetMode == null) {
-            currentTargetMode = currentMode; // Initialize target mode if not set
+            currentTargetMode = currentMode;
         }
         if (currentMode !== currentTargetMode && userNotRequestingChangeMode) {
-            document.getElementById(currentMode + "-mode").checked = true; // Update the radio button
-            document.getElementById("current-mode").innerText = currentMode.toUpperCase(); // Update the current mode
-            currentTargetMode = currentMode; // Update the target mode to the current mode
+            document.getElementById("current-mode").innerText = currentMode.toUpperCase();
+            updateModeButtons(currentMode);
+            currentTargetMode = currentMode;
         }
     })
     .catch(error => console.error('Error fetching current mode:', error));
+    
+    // Update temperature settings
+    fetchWithTimeout("http://blade:5000/temperature_settings", {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    }, timeout)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("heat-temperature").innerText = data.current_heat_temp + "°F";
+        document.getElementById("cool-temperature").innerText = data.current_cool_temp + "°F";
+    })
+    .catch(error => console.error('Error fetching temperature settings:', error));
 }
 
-// Function to update the target mode based on user input
-function updateTargetMode(radioButton) {
-    userNotRequestingChangeMode = false;
-    autoUpdatePaused = true; // Pause automatic updates during manual mode change
-    currentTargetMode = radioButton.value.toLowerCase(); // Ensure mode is in lowercase
-    sendModeUpdate(); // Immediately send the mode update
+// Function to format datetime
+function formatDateTime(dateStr) {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
-// Function to fetch scheduled events from the server
-function fetchScheduledEvents() {
+// Function to display scheduled items
+function displayScheduledItems() {
     fetchWithTimeout("http://blade:5000/get_scheduled_events", {
         method: 'GET',
         mode: 'cors',
@@ -283,6 +311,76 @@ function fetchScheduledEvents() {
             'Content-Type': 'application/json'
         }
     }, timeout)
+    .then(response => response.json())
+    .then(schedules => {
+        const container = document.getElementById('scheduled-items');
+        container.innerHTML = '';
+        
+        if (schedules.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #6c757d;">No schedules configured</p>';
+            return;
+        }
+        
+        schedules.forEach(item => {
+            const scheduleDiv = document.createElement('div');
+            scheduleDiv.classList.add('schedule-item');
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.classList.add('schedule-info');
+            
+            const mainInfo = document.createElement('div');
+            mainInfo.innerHTML = `<strong>${item.time}</strong> - ${item.temperature}°F ${item.mode.toUpperCase()} - ${item.days_of_week}`;
+            infoDiv.appendChild(mainInfo);
+            
+            // Add metadata if available
+            if (item.next_execution || item.last_error) {
+                const metaDiv = document.createElement('div');
+                metaDiv.classList.add('schedule-meta');
+                
+                if (item.next_execution) {
+                    metaDiv.innerHTML += `Next: ${formatDateTime(item.next_execution)}`;
+                }
+                if (item.last_error) {
+                    metaDiv.innerHTML += ` <span style="color: #dc3545;">⚠ ${item.last_error}</span>`;
+                }
+                
+                infoDiv.appendChild(metaDiv);
+            }
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.classList.add('schedule-actions');
+            
+            const toggleBtn = document.createElement('button');
+            toggleBtn.classList.add('btn-toggle', item.enabled ? 'enabled' : 'disabled');
+            toggleBtn.textContent = item.enabled ? 'Enabled' : 'Disabled';
+            toggleBtn.onclick = () => toggleSchedule(item.id, !item.enabled);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('btn-delete');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.onclick = () => deleteScheduledItem(item.id);
+            
+            actionsDiv.appendChild(toggleBtn);
+            actionsDiv.appendChild(deleteBtn);
+            
+            scheduleDiv.appendChild(infoDiv);
+            scheduleDiv.appendChild(actionsDiv);
+            container.appendChild(scheduleDiv);
+        });
+    })
+    .catch(error => console.error('Error fetching scheduled events:', error));
+}
+
+// Function to toggle schedule
+function toggleSchedule(id, enabled) {
+    fetchWithTimeout(`http://blade:5000/update_schedule/${id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({ enabled: enabled })
+    }, timeout)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -290,77 +388,21 @@ function fetchScheduledEvents() {
         return response.json();
     })
     .then(data => {
-        scheduledItems = data; // Update the local array with fetched data
-        displayScheduledItems(); // Refresh the display with new data
+        showFeedback('Schedule updated successfully');
+        displayScheduledItems();
     })
-    .catch(error => console.error('Error fetching scheduled events:', error));
-}
-
-// Function to display scheduled items
-function displayScheduledItems() {
-    const scheduledItemsContainer = document.getElementById('scheduled-items');
-    scheduledItemsContainer.innerHTML = ''; // Clear existing items
-
-    scheduledItems.forEach(item => { // Use each item's unique id directly from the server
-        const scheduleItemDiv = document.createElement('div');
-        scheduleItemDiv.classList.add('schedule-item');
-
-        const scheduleInfo = document.createElement('span');
-        scheduleInfo.textContent = `Time: ${item.time}, Temp: ${item.temperature}°F, Mode: ${item.mode.toUpperCase()}`;
-
-        const enableCheckbox = document.createElement('input');
-        enableCheckbox.type = 'checkbox';
-        enableCheckbox.checked = item.enabled;
-        enableCheckbox.onchange = () => toggleScheduleEnable(item.id, enableCheckbox.checked); // Use item.id instead of index
-
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.onclick = () => deleteScheduledItem(item.id); // Use item.id instead of index
-
-        scheduleItemDiv.appendChild(scheduleInfo);
-        scheduleItemDiv.appendChild(enableCheckbox);
-        scheduleItemDiv.appendChild(deleteButton);
-
-        scheduledItemsContainer.appendChild(scheduleItemDiv);
+    .catch(error => {
+        console.error('Error updating schedule:', error);
+        showFeedback('Failed to update schedule', true);
     });
 }
 
-// Function to toggle the enable state of a scheduled item
-function toggleScheduleEnable(id, enabled) {
-    // Find the item in the array and update its enabled state
-    const item = scheduledItems.find(event => event.id === id);
-    if (item) {
-        item.enabled = enabled;
-        console.log(`Schedule with ID ${id} enabled: ${enabled}`);
-
-        // Send update to server
-        const scheduleData = { enabled: enabled };
-
-        fetchWithTimeout(`http://blade:5000/update_schedule/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify(scheduleData)
-        }, timeout)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            console.log('Schedule updated successfully on server');
-            updateStatusMessage('Schedule updated successfully.', true);
-        })
-        .catch(error => {
-            console.error('Error updating schedule on server:', error);
-            updateStatusMessage('Failed to update schedule.', false);
-        });
-    }
-}
-
-// Function to delete a scheduled item
+// Function to delete scheduled item
 function deleteScheduledItem(id) {
-    // Send delete request to server
+    if (!confirm('Are you sure you want to delete this schedule?')) {
+        return;
+    }
+    
     fetchWithTimeout(`http://blade:5000/delete_schedule/${id}`, {
         method: "DELETE",
         headers: {
@@ -371,182 +413,115 @@ function deleteScheduledItem(id) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        console.log(`Schedule with ID ${id} deleted successfully from server`);
-        updateStatusMessage('Schedule deleted successfully.', true);
-        // If successful, remove the item from the array and refresh display
-        scheduledItems = scheduledItems.filter(event => event.id !== id); // Remove the item by id
-        displayScheduledItems(); // Refresh the display
+        return response.json();
+    })
+    .then(data => {
+        showFeedback('Schedule deleted successfully');
+        displayScheduledItems();
     })
     .catch(error => {
-        console.error('Error deleting schedule from server:', error);
-        updateStatusMessage('Failed to delete schedule.', false);
+        console.error('Error deleting schedule:', error);
+        showFeedback('Failed to delete schedule', true);
     });
 }
 
-// Function to submit the schedule
+// Function to submit schedule
 function submitSchedule() {
     const time = document.getElementById('schedule-time').value;
     const temp = document.getElementById('schedule-temp').value;
     const mode = document.getElementById('schedule-mode').value;
-
-    if (time && temp && mode) {
-        const scheduleData = {
-            time: time,
-            temperature: parseInt(temp),
-            mode: mode,
-            enabled: true // Automatically set new schedules to enabled
-        };
-
-        fetchWithTimeout("http://blade:5000/set_schedule", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify(scheduleData)
-        }, timeout)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            updateStatusMessage('Schedule set successfully.', true);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Schedule set successfully:', data);
-            //alert('Schedule set successfully!');
-            fetchScheduledEvents(); // Refresh the list after setting a new schedule
-        })
-        .catch(error => {
-            console.error('Error setting schedule:', error);
-            updateStatusMessage('Failed to set schedule.', false);
-        });
-    } else {
-        alert('Please fill all fields to set a schedule.');
+    const days = document.getElementById('schedule-days').value;
+    
+    if (!time || !temp || !mode) {
+        showFeedback('Please fill in all required fields', false, true);
+        return;
     }
-}
-
-// Debounce function to limit the rate of function execution
-function debounce(func, delay) {
-    let timeoutId;
-    return function(...args) {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        timeoutId = setTimeout(() => {
-            func.apply(this, args);
-        }, delay);
+    
+    const scheduleData = {
+        time: time,
+        temperature: parseInt(temp),
+        mode: mode,
+        days_of_week: days,
+        enabled: true
     };
-}
-
-// Debounced version of sendTemperatureUpdate to control frequency
-const debouncedSendTemperatureUpdate = debounce(sendTemperatureUpdate, 1000);
-
-// Function to activate the light
-function activateLight() {
-    fetchWithTimeout("http://blade:5000/activate_light", {
+    
+    fetchWithTimeout("http://blade:5000/set_schedule", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json"
-        }
+        },
+        body: JSON.stringify(scheduleData)
     }, timeout)
     .then(response => {
         if (!response.ok) {
-            console.error(`HTTP error! status: ${response.status}`);
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(err => Promise.reject(err));
         }
-        updateStatusMessage('Light activated successfully.', true);
         return response.json();
     })
-    .then(data => console.log('Light activation response:', data))
+    .then(data => {
+        showFeedback('Schedule created successfully');
+        // Clear form
+        document.getElementById('schedule-time').value = '';
+        document.getElementById('schedule-temp').value = '';
+        displayScheduledItems();
+    })
     .catch(error => {
-        console.error('Error activating light:', error);
-        updateStatusMessage('Failed to activate light.', false);
+        console.error('Error setting schedule:', error);
+        if (error.message) {
+            showFeedback(error.message, true);
+        } else {
+            showFeedback('Failed to create schedule', true);
+        }
     });
 }
 
-// Function to reload the page if initial requests fail
+// Function to initialize video feed
+function initializeVideoFeed() {
+    const video = document.getElementById('video');
+    const videoFeedUrl = 'http://blade:5000/video_feed';
+    
+    function loadNextFrame() {
+        const newFrameUrl = videoFeedUrl + '?t=' + new Date().getTime();
+        const imgLoader = new Image();
+        
+        imgLoader.onload = () => {
+            video.src = newFrameUrl;
+            setTimeout(loadNextFrame, 1000);
+        };
+        
+        imgLoader.onerror = () => {
+            console.error("Failed to load video frame, retrying...");
+            setTimeout(loadNextFrame, 5000);
+        };
+        
+        imgLoader.src = newFrameUrl;
+    }
+    
+    loadNextFrame();
+}
+
+// Function to reload page if needed
 function reloadPageIfNeeded(error) {
     console.error('Initial request failed, reloading page:', error);
     setTimeout(() => {
         window.location.reload();
-    }, 1000); // Delay for 1 second before reloading
+    }, 1000);
 }
 
-// Function to change the button color temporarily
-function changeButtonColor() {
-    const lightButton = document.getElementById('light-btn');
-    
-    // Add the yellow background class
-    lightButton.classList.add('yellow-bg');
-
-    // Remove the yellow background class after 3 seconds
-    setTimeout(() => {
-        lightButton.classList.remove('yellow-bg');
-    }, 3000);
-}
-
-// Function to initialize the video feed
-function initializeVideoFeed() {
-    const video = document.getElementById('video');
-    const videoFeedUrl = 'http://blade:5000/video_feed'; // Direct URL to Pi's video feed
-
-    // Function to load the next video frame
-    function loadNextFrame() {
-        const newFrameUrl = videoFeedUrl + '?t=' + new Date().getTime();
-
-        // Create a new image object to load the frame
-        const imgLoader = new Image();
-
-        imgLoader.onload = () => {
-            video.src = newFrameUrl; // Update the video source only after loading
-            setTimeout(loadNextFrame, 3000); // Load the next frame after 1 second
-        };
-
-        imgLoader.onerror = () => {
-            console.error("Failed to load video frame, retrying...");
-            setTimeout(loadNextFrame, 10000); // Retry loading the frame after 1 second
-        };
-
-        // Start loading the new frame
-        imgLoader.src = newFrameUrl;
-    }
-
-    // Load the first frame to start the process
-    loadNextFrame();
-}
-
-// Initialize the desired temperature and update the page every second
+// Initialize when DOM is loaded
 window.onload = function() {
-    checkServerHealth(); // Start with a server health check
-
-    setInterval(updateTimeSinceLastAction, 1000);
-    setInterval(updateCurrentMode, 1000);
-    setInterval(updateDesiredTemperature, 1000);
-    setInterval(updateTemperatureSettings, 1000); // Update heat and cool settings
-
-    // Add event listeners for temperature buttons
-    document.getElementById('increase-temp').addEventListener('click', () => {
-        adjustTemperature(1);
-        debouncedSendTemperatureUpdate();
-    });
-
-    document.getElementById('decrease-temp').addEventListener('click', () => {
-        adjustTemperature(-1);
-        debouncedSendTemperatureUpdate();
-    });
-
-    // Add event listener for light button
-    document.getElementById('light-btn').addEventListener('click', () => {
-        activateLight();
-        changeButtonColor();
-    });
-
-    initializeVideoFeed(); // Initialize video feed after temperature setup
-
-    displayScheduledItems(); // Display any existing scheduled items
-
-    // Poll the server every 3 seconds for new scheduled events
-    setInterval(fetchScheduledEvents, 3000);
+    checkServerHealth();
+    
+    // Update status every second
+    setInterval(updateStatus, 1000);
+    
+    // Update schedules every 5 seconds
+    setInterval(displayScheduledItems, 5000);
+    
+    // Initialize video feed
+    initializeVideoFeed();
+    
+    // Display schedules initially
+    displayScheduledItems();
 };

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-TARGET_IP="10.0.0.191"    # Thermostat IP
+TARGET_IP="10.0.0.191"   # Thermostat IP
 KASA_IP="10.0.0.26"      # Smart Plug IP
-RETRY_LIMIT=30            # Consecutive failure limit
+RETRY_LIMIT=30           # Consecutive failure limit
 PING_INTERVAL=2          # Seconds between pings
 LOG_FILE="./reset.log"   # Log file path
 CHECK_DELAY=600          # Delay after reset in seconds

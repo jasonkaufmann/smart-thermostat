@@ -1,3 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project specific
 smart_thermostat.log
 nohup.out
 oom_monitor.sh
@@ -5,3 +42,52 @@ info.txt
 temp.txt
 settings.txt
 pi_zero.log
+reset.log
+*.log
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+thermostat_schedules.db
+thermostat_schedules.db-journal
+
+# Backup files
+*.backup
+*.bak
+scheduled_events.json
+scheduled_events.json.backup
+
+# Images and media
+static/images/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+
+# Flask
+instance/
+.webassets-cache
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Environment variables
+.env
+.env.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+.Trash-*

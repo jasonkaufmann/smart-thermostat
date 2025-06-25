@@ -9,7 +9,9 @@ from flask_cors import CORS
 import datetime
 import json
 import requests
-import os 
+import os
+import pytz
+from scheduler import ThermostatScheduler, SchedulerError 
 
 # Set up logging
 # Set up logging to a file
@@ -49,16 +51,13 @@ servo_down = "down"  # Servo for down temperature
 servo_mode = "mode"  # Servo for mode selection
 servo_up = "up"    # Servo for up temperature
 
-# Define the file path to store scheduled events
-SCHEDULE_FILE_PATH = 'scheduled_events.json'
 # Constants for modes
 MODE_OFF = 0
 MODE_HEAT = 1
 MODE_COOL = 2
 
-scheduled_events = []
-# Global dictionary to keep track of active timers
-active_timers = {}
+# Initialize the scheduler
+scheduler = None
 
 # Global variables for managing state
 current_heat_temp = 75
@@ -211,86 +210,6 @@ def set_temperature(target_temp):
     current_desired_temp = target_temp
     return jsonify(result)
 
-import threading
-import datetime
-import logging
-
-# Global dictionary to keep track of active timers
-active_timers = {}
-
-def schedule_action(action_id, action_time, temperature, mode):
-    global active_timers, scheduled_events
-    """Schedule a thermostat change at a specific time every day."""
-
-    def task(action_id):
-        global current_desired_temp
-        logging.info(f"Executing scheduled task for ID {action_id}")
-
-        # Retrieve the latest scheduled event details for the given action_id
-        event = next((event for event in scheduled_events if event['id'] == action_id), None)
-        
-        if event:
-            # Use the most recent temperature and mode from the scheduled events
-            temperature = event['temperature']
-            mode = event['mode']
-            
-            logging.info(f"Using updated parameters for task ID {action_id}: Temperature={temperature}, Mode={mode}")
-
-            mode_result = set_mode_logic(mode)
-            if not mode_result:
-                logging.error(f"Failed to set mode to {mode} for scheduled task ID {action_id}")
-                return
-
-            temp_result = set_temperature_logic(temperature)
-            if temp_result.get("status") != "success":
-                logging.error(f"Failed to set temperature to {temperature} for scheduled task ID {action_id}")
-                return
-
-            current_desired_temp = temperature
-            save_settings()
-            
-            # Reschedule the task for the same time the next day
-            reschedule_action(action_id, action_time, temperature, mode)
-        else:
-            logging.info(f"Scheduled event ID {action_id} has been deleted. No action will be taken.")
-            # Clean up any remaining references to the deleted action
-            if action_id in active_timers:
-                del active_timers[action_id]  # Remove from active timers
-
-    # Calculate the delay in seconds until the next occurrence of the action time
-    now = datetime.datetime.now()
-    next_action_time = datetime.datetime.combine(now.date(), action_time.time())
-    
-    if now >= next_action_time:
-        # If the time is already passed today, schedule it for tomorrow
-        next_action_time += datetime.timedelta(days=1)
-    
-    delay = (next_action_time - now).total_seconds()
-    
-    if delay > 0:
-        # Schedule the task and pass action_id as an argument
-        timer = threading.Timer(delay, task, args=(action_id,))
-        timer.start()
-        # Store the timer in the dictionary using action_id as the key
-        active_timers[action_id] = timer
-        logging.info(f"Scheduled task set for {next_action_time} (ID: {action_id}), in {delay} seconds")
-    else:
-        logging.warning("Scheduled time is in the past, not scheduling task.")
-
-def reschedule_action(action_id, action_time, temperature, mode):
-    """Reschedule the thermostat change for the next day."""
-    # Schedule the action for the same time on the next day
-    next_action_time = action_time + datetime.timedelta(days=1)
-    schedule_action(action_id, next_action_time, temperature, mode)
-
-def cancel_scheduled_action(action_id):
-    """Cancel a scheduled thermostat change."""
-    timer = active_timers.pop(action_id, None)
-    if timer:
-        timer.cancel()
-        logging.info(f"Cancelled scheduled task with ID {action_id}")
-    else:
-        logging.warning(f"No active task found with ID {action_id} to cancel")
 
 def activate_screen():
     """Activate the screen and set mode to HEAT or COOL."""
@@ -350,36 +269,6 @@ def load_settings():
         current_mode = MODE_OFF
         current_desired_temp = 70
 
-def load_scheduled_events():
-    """Load scheduled events from a file on startup and schedule them."""
-    global scheduled_events
-    try:
-        with open(SCHEDULE_FILE_PATH, 'r') as file:
-            scheduled_events = json.load(file)
-        print(f"Loaded {len(scheduled_events)} scheduled events from file.")
-        
-        # Schedule each event that was loaded
-        for event in scheduled_events:
-            if event['enabled']:
-                action_time = datetime.datetime.strptime(event['time'], '%H:%M')  # Assuming time is in 'HH:MM' format
-                # Combine today's date with the scheduled time
-                action_datetime = datetime.datetime.combine(datetime.datetime.now().date(), action_time.time())
-                schedule_action(event['id'], action_datetime, event['temperature'], event['mode'])
-                print(f"Scheduled action for event ID {event['id']} at {action_datetime}")
-                
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("No scheduled events file found or file is corrupted. Starting fresh.")
-        scheduled_events = []
-
-def save_scheduled_events():
-    """Save scheduled events to a file whenever they change."""
-    global scheduled_events
-    try:
-        with open(SCHEDULE_FILE_PATH, 'w') as file:
-            json.dump(scheduled_events, file, indent=4)
-        print("Scheduled events saved to file.")
-    except Exception as e:
-        print(f"Error saving scheduled events to file: {e}")
 
 
 def log_info():
@@ -433,7 +322,15 @@ def set_temperature_route():
     if not data or 'temperature' not in data:
         return jsonify({"status": "error", "message": "Invalid data"}), 400
 
-    target_temp = int(data['temperature'])
+    try:
+        target_temp = int(data['temperature'])
+    except ValueError:
+        return jsonify({"status": "error", "message": "Temperature must be a number"}), 400
+        
+    # Validate temperature range
+    if target_temp < 50 or target_temp > 90:
+        return jsonify({"status": "error", "message": "Temperature must be between 50 and 90°F"}), 400
+    
     logging.info("Received temperature set request")
     result = set_temperature_logic(target_temp)
     if result["status"] == "success":
@@ -513,50 +410,42 @@ def set_mode():
         return jsonify({"status": "error", "message": "Invalid data"}), 400
     
     mode = data['mode'].lower()
+    
+    # Validate mode
+    if mode not in ['off', 'heat', 'cool']:
+        return jsonify({"status": "error", "message": "Mode must be 'off', 'heat', or 'cool'"}), 400
 
     result = set_mode_logic(mode)
     if not result:
-        return jsonify({"status": "error", "message": "Invalid mode or failed to set mode"}), 400
+        return jsonify({"status": "error", "message": "Failed to set mode"}), 500
     return jsonify({"status": "success", "mode": mode})
 
 
-@app.route("/delete_schedule/<int:schedule_id>", methods=["DELETE"])
+@app.route("/delete_schedule/<schedule_id>", methods=["DELETE"])
 def delete_schedule(schedule_id):
     """Delete a scheduled event by its ID."""
-    global scheduled_events
+    try:
+        scheduler.delete_schedule(schedule_id)
+        return jsonify({"status": "success", "message": f"Schedule {schedule_id} deleted"}), 200
+    except SchedulerError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+    except Exception as e:
+        logging.error(f"Error deleting schedule: {e}")
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
 
-    # Find the schedule in the list and remove it
-    scheduled_events = [event for event in scheduled_events if event['id'] != schedule_id]
-
-    cancel_scheduled_action(schedule_id)  # Cancel the scheduled action if it exists
-
-    save_scheduled_events()  # Save changes to file
-
-    return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} deleted"}), 200
-
-@app.route("/update_schedule/<int:schedule_id>", methods=["PATCH"])
+@app.route("/update_schedule/<schedule_id>", methods=["PATCH"])
 def update_schedule(schedule_id):
-    """Update the 'enabled' state of a scheduled event."""
-    global scheduled_events
+    """Update a scheduled event."""
     data = request.get_json()
-
-    if 'enabled' not in data:
-        return jsonify({"status": "error", "message": "Invalid data, 'enabled' field is required"}), 400
-
-    # Find the schedule by ID and update its 'enabled' state
-    for event in scheduled_events:
-        if event['id'] == schedule_id:
-            event['enabled'] = data['enabled']
-            if not data['enabled']:
-                cancel_scheduled_action(schedule_id)  # Cancel the scheduled action if it is disabled
-            else:
-                # Correct the datetime parsing format to match 'HH:MM'
-                action_time = datetime.datetime.strptime(event['time'], '%H:%M')
-                schedule_action(schedule_id, action_time, event['temperature'], event['mode'])
-            save_scheduled_events()  # Save changes to file
-            return jsonify({"status": "success", "message": f"Schedule with ID {schedule_id} updated"}), 200
-
-    return jsonify({"status": "error", "message": f"Schedule with ID {schedule_id} not found"}), 404
+    
+    try:
+        scheduler.update_schedule(schedule_id, **data)
+        return jsonify({"status": "success", "message": f"Schedule {schedule_id} updated"}), 200
+    except SchedulerError as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+    except Exception as e:
+        logging.error(f"Error updating schedule: {e}")
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 
 @app.route('/receive_image', methods=['POST'])
@@ -676,7 +565,37 @@ def set_schedule():
 
 @app.route("/get_scheduled_events", methods=["GET"])
 def get_scheduled_events():
-    return jsonify(scheduled_events), 200
+    try:
+        schedules = scheduler.get_schedules()
+        # Convert to the expected format for backward compatibility
+        events = []
+        for schedule in schedules:
+            events.append({
+                "id": schedule['id'],
+                "time": schedule['time'],
+                "temperature": schedule['temperature'],
+                "mode": schedule['mode'],
+                "enabled": schedule['enabled'],
+                "days_of_week": schedule.get('days_of_week', 'daily'),
+                "next_execution": schedule.get('next_execution', ''),
+                "last_executed": schedule.get('last_executed', ''),
+                "last_error": schedule.get('last_error', '')
+            })
+        return jsonify(events), 200
+    except Exception as e:
+        logging.error(f"Error getting schedules: {e}")
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
+
+@app.route("/schedule_history/<schedule_id>", methods=["GET"])
+def get_schedule_history(schedule_id):
+    """Get execution history for a specific schedule"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        history = scheduler.get_schedule_history(schedule_id, limit)
+        return jsonify(history), 200
+    except Exception as e:
+        logging.error(f"Error getting schedule history: {e}")
+        return jsonify({"status": "error", "message": "Internal server error"}), 500
 
 @app.route("/time_since_last_action", methods=["GET"])
 def get_time_since_last_action():
@@ -737,11 +656,18 @@ def health_check():
     return jsonify({"status": "ok"}), 200
 
 def main():
+    global scheduler
     try:
         # Load settings from the file at startup
         logging.info("Starting main function")
         load_settings()
-        load_scheduled_events()
+        
+        # Initialize the scheduler with callbacks
+        scheduler = ThermostatScheduler(
+            temperature_callback=lambda temp: set_temperature_logic(temp).get("status") == "success",
+            mode_callback=lambda mode: set_mode_logic(mode)
+        )
+        scheduler.start()
 
         # Start logging in a separate thread
         logging.info("Starting logging thread")
@@ -755,6 +681,8 @@ def main():
 
     finally:
         logging.info("Exiting application")
+        if scheduler:
+            scheduler.stop()
         if not args.simulate:
             # Set all servos to a neutral position before exiting
             servo_down.angle = 0
