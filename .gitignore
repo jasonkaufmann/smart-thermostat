@@ -21,6 +21,7 @@ wheels/
 *.egg
 MANIFEST
 static/images
+settings.txt
 
 # Virtual Environment
 venv/
