@@ -7,6 +7,35 @@ body {
     color: #343a40;
 }
 
+/* Version Badge */
+.version-badge {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background-color: #6c757d;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8em;
+    font-weight: bold;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+/* Pulse animation for version updates */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        box-shadow: 0 2px 15px rgba(255, 107, 107, 0.6);
+    }
+    100% {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+}
+
 .container {
     max-width: 100%;
     margin: 0 auto;
@@ -35,6 +64,24 @@ h2 {
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Mode-specific control card styling */
+.control-card.mode-heat {
+    border-color: #ff6b6b;
+    box-shadow: 0 4px 20px rgba(220, 53, 69, 0.15);
+}
+
+.control-card.mode-cool {
+    border-color: #4dabf7;
+    box-shadow: 0 4px 20px rgba(0, 123, 255, 0.15);
+}
+
+.control-card.mode-off {
+    border-color: #dee2e6;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Mode Selection */
@@ -67,15 +114,21 @@ h2 {
 }
 
 .btn-mode[data-mode="heat"].active {
-    background-color: #dc3545;
+    background: linear-gradient(135deg, #ff6b6b, #dc3545);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .btn-mode[data-mode="cool"].active {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #4dabf7, #007bff);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .btn-mode[data-mode="off"].active {
-    background-color: #6c757d;
+    background: linear-gradient(135deg, #868e96, #495057);
+    box-shadow: 0 4px 15px rgba(73, 80, 87, 0.3);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Temperature Control */
@@ -96,7 +149,7 @@ h2 {
     color: white;
     font-size: 1.5em;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -104,6 +157,38 @@ h2 {
 
 .btn-temp-adjust:hover {
     background-color: #0056b3;
+    transform: scale(1.1);
+}
+
+/* Mode-specific temperature adjustment buttons */
+.mode-heat .btn-temp-adjust {
+    background: linear-gradient(135deg, #ff6b6b, #dc3545);
+}
+
+.mode-heat .btn-temp-adjust:hover {
+    background: linear-gradient(135deg, #ff5252, #c82333);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+}
+
+.mode-cool .btn-temp-adjust {
+    background: linear-gradient(135deg, #4dabf7, #007bff);
+}
+
+.mode-cool .btn-temp-adjust:hover {
+    background: linear-gradient(135deg, #339af0, #0056b3);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+}
+
+.mode-off .btn-temp-adjust {
+    background: linear-gradient(135deg, #868e96, #495057);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.mode-off .btn-temp-adjust:hover {
+    background: linear-gradient(135deg, #868e96, #495057);
+    transform: none;
+    box-shadow: none;
 }
 
 .temperature-display {
@@ -112,12 +197,42 @@ h2 {
     padding: 20px 30px;
     border-radius: 10px;
     border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+/* Mode-specific temperature display */
+.mode-heat .temperature-display {
+    border-color: #ff6b6b;
+    background-color: #fff5f5;
+}
+
+.mode-cool .temperature-display {
+    border-color: #4dabf7;
+    background-color: #f0f8ff;
+}
+
+.mode-off .temperature-display {
+    border-color: #868e96;
+    background-color: #f8f9fa;
 }
 
 .temp-value {
     font-size: 3em;
     font-weight: bold;
     color: #343a40;
+    transition: color 0.3s ease;
+}
+
+.mode-heat .temp-value {
+    color: #dc3545;
+}
+
+.mode-cool .temp-value {
+    color: #007bff;
+}
+
+.mode-off .temp-value {
+    color: #6c757d;
 }
 
 .temp-unit {
@@ -213,6 +328,14 @@ h2 {
 
 .schedule-form input[type="number"] {
     width: 80px;
+    transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.schedule-form input[type="number"][style*="display: none"] {
+    width: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
 }
 
 .schedule-form select {
@@ -326,6 +449,11 @@ h2 {
     border: 2px solid #dee2e6;
     border-radius: 10px;
     margin-top: 15px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    object-fit: contain;
+    background-color: #f8f9fa;
 }
 
 /* Feedback Message */
@@ -363,6 +491,30 @@ h2 {
     100% {
         transform: scale(1);
     }
+}
+
+/* Mode transition animations */
+.btn-mode {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-mode::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-mode.active::before {
+    width: 300px;
+    height: 300px;
 }
 
 /* Responsive Design */
@@ -423,5 +575,115 @@ h2 {
         right: 10px;
         left: 10px;
         width: auto;
+    }
+}
+
+/* Vision Detection Section */
+.vision-section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    margin: 20px auto;
+    max-width: 600px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.vision-section h2 {
+    color: #343a40;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.vision-stats-row {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.vision-stats-row .stat-item {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-radius: 8px;
+    flex: 1;
+    min-width: 120px;
+    border: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.vision-stats-row .stat-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.vision-stats-row .stat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #2196F3;
+}
+
+.vision-stats-row .stat-value.large {
+    font-size: 2.2rem;
+    color: #28a745;
+}
+
+.vision-stats-row .stat-value.error {
+    color: #dc3545;
+}
+
+.vision-stats-row .stat-value.stale {
+    color: #6c757d;
+}
+
+
+/* Vision confidence indicator */
+#vision-confidence {
+    color: #28a745;
+}
+
+#vision-confidence.low {
+    color: #ffc107;
+}
+
+#vision-confidence.medium {
+    color: #fd7e14;
+}
+
+@media (max-width: 768px) {
+    .vision-section {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .vision-stats-row {
+        gap: 10px;
+    }
+    
+    .vision-stats-row .stat-item {
+        min-width: 100px;
+        padding: 12px 15px;
+    }
+    
+    .vision-stats-row .stat-value.large {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .vision-stats-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .vision-stats-row .stat-item {
+        width: 100%;
+        min-width: unset;
     }
 }

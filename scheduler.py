@@ -376,6 +376,9 @@ class ThermostatScheduler:
         now = datetime.datetime.now(LOCAL_TIMEZONE)
         delay = (execution_time - now).total_seconds()
         
+        # Check if this is for a 6:00 AM schedule
+        is_6am_target = execution_time.hour == 6 and execution_time.minute == 0
+        
         if delay > 0:
             timer = threading.Timer(delay, self._execute_schedule, args=(schedule_id,))
             timer.daemon = True
@@ -383,8 +386,21 @@ class ThermostatScheduler:
             
             with self.timers_lock:
                 self.active_timers[schedule_id] = timer
-                
-            logging.info(f"Scheduled timer for {schedule_id} at {execution_time} (in {delay:.0f} seconds)")
+            
+            if is_6am_target:
+                logging.info(f"===== 6:00 AM TIMER SCHEDULED =====")
+                logging.info(f"6AM Timer: Schedule ID: {schedule_id}")
+                logging.info(f"6AM Timer: Current time: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                logging.info(f"6AM Timer: Execution time: {execution_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                logging.info(f"6AM Timer: Delay: {delay:.0f} seconds ({delay/3600:.1f} hours)")
+                logging.info(f"6AM Timer: Timer will fire at: {execution_time}")
+            else:
+                logging.info(f"Scheduled timer for {schedule_id} at {execution_time} (in {delay:.0f} seconds)")
+        else:
+            if is_6am_target:
+                logging.warning(f"6AM Timer: Cannot schedule - time already passed! Now: {now}, Target: {execution_time}")
+            else:
+                logging.warning(f"Cannot schedule timer for {schedule_id} - time already passed")
             
     def _cancel_timer(self, schedule_id: str):
         """Cancel an active timer"""
@@ -396,13 +412,28 @@ class ThermostatScheduler:
                 
     def _execute_schedule(self, schedule_id: str):
         """Execute a scheduled action with retry logic"""
+        current_time = datetime.datetime.now(LOCAL_TIMEZONE)
+        
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM schedules WHERE id = ?', (schedule_id,))
             schedule = cursor.fetchone()
             
-            if not schedule or not schedule['enabled']:
+            if not schedule:
+                logging.error(f"Schedule {schedule_id} not found in database")
                 return
+                
+            if not schedule['enabled']:
+                logging.info(f"Schedule {schedule_id} is disabled, skipping execution")
+                return
+            
+            # Enhanced logging for 6:00 AM schedule
+            is_6am_schedule = schedule['time'] == '06:00'
+            if is_6am_schedule:
+                logging.info(f"===== 6:00 AM SCHEDULE EXECUTION STARTING =====")
+                logging.info(f"Schedule ID: {schedule_id}")
+                logging.info(f"Current time: {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                logging.info(f"Schedule details: {schedule['time']} {schedule['temperature']}°F {schedule['mode']} {schedule['days_of_week']}")
                 
             success = False
             error_message = None
@@ -410,28 +441,57 @@ class ThermostatScheduler:
             
             try:
                 # Execute mode change first
+                if is_6am_schedule:
+                    logging.info(f"6AM: Attempting to set mode to {schedule['mode']}")
+                    
                 mode_success = self.mode_callback(schedule['mode'])
+                
+                if is_6am_schedule:
+                    logging.info(f"6AM: Mode callback returned: {mode_success}")
+                    
                 if not mode_success:
                     raise SchedulerError(f"Failed to set mode to {schedule['mode']}")
                     
                 # Then temperature
+                if is_6am_schedule:
+                    logging.info(f"6AM: Attempting to set temperature to {schedule['temperature']}°F")
+                    
                 temp_success = self.temperature_callback(schedule['temperature'])
+                
+                if is_6am_schedule:
+                    logging.info(f"6AM: Temperature callback returned: {temp_success}")
+                    
                 if not temp_success:
                     raise SchedulerError(f"Failed to set temperature to {schedule['temperature']}")
                     
                 success = True
                 retry_count = 0  # Reset retry count on success
-                logging.info(f"Successfully executed schedule {schedule_id}: {schedule['temperature']}°F {schedule['mode']}")
+                
+                if is_6am_schedule:
+                    logging.info(f"===== 6:00 AM SCHEDULE EXECUTION COMPLETED SUCCESSFULLY =====")
+                else:
+                    logging.info(f"Successfully executed schedule {schedule_id}: {schedule['temperature']}°F {schedule['mode']}")
                 
             except Exception as e:
                 error_message = str(e)
                 retry_count += 1
-                logging.error(f"Failed to execute schedule {schedule_id}: {error_message} (retry count: {retry_count})")
+                
+                if is_6am_schedule:
+                    logging.error(f"===== 6:00 AM SCHEDULE EXECUTION FAILED =====")
+                    logging.error(f"6AM: Error type: {type(e).__name__}")
+                    logging.error(f"6AM: Error message: {error_message}")
+                    logging.error(f"6AM: Retry count: {retry_count}")
+                    import traceback
+                    logging.error(f"6AM: Stack trace:\n{traceback.format_exc()}")
+                else:
+                    logging.error(f"Failed to execute schedule {schedule_id}: {error_message} (retry count: {retry_count})")
                 
                 # Schedule retry if under limit
                 if retry_count < 3:
                     retry_delay = 60 * (2 ** retry_count)  # Exponential backoff
                     retry_time = datetime.datetime.now(LOCAL_TIMEZONE) + datetime.timedelta(seconds=retry_delay)
+                    if is_6am_schedule:
+                        logging.info(f"6AM: Scheduling retry in {retry_delay} seconds at {retry_time.strftime('%H:%M:%S')}")
                     self._schedule_timer(schedule_id, retry_time)
                     
             # Update database

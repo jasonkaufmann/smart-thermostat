@@ -1,0 +1,10 @@
+{
+  "image_path": "/home/jason/smart-thermostat/experimental/experimental/vision_captures/capture_20250628_185608.jpg",
+  "timestamp": "2025-06-28T18:56:08.838415",
+  "prompt": "Look at this thermostat display and extract:\n1. The temperature shown (just the number)\n2. Any visible mode indicator (HEAT/COOL/OFF)\n3. Your confidence level\n\nRespond in this exact format:\nTEMP: [number]\nMODE: [mode or 'unknown']\nCONFIDENCE: [high/medium/low]",
+  "expected_format": {
+    "temperature": "integer between 50-90",
+    "mode": "one of: heat, cool, off, unknown",
+    "confidence": "one of: high, medium, low"
+  }
+}

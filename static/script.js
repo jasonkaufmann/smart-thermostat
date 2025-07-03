@@ -7,6 +7,7 @@ let userNotRequestingChange = true;
 let userNotRequestingChangeMode = true;
 let autoUpdatePaused = false;
 let timeout = 10000;
+let currentVersion = null;
 
 // Helper function to show feedback messages
 function showFeedback(message, isError = false, isWarning = false) {
@@ -64,7 +65,8 @@ function checkServerHealth() {
 
 // Function to initialize the desired temperature
 function initializeDesiredTemperature() {
-    fetchWithTimeout("http://blade:5000/set_temperature", {
+    // First fetch the current mode
+    fetchWithTimeout("http://blade:5000/current_mode", {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -78,11 +80,40 @@ function initializeDesiredTemperature() {
         }
         return response.json();
     })
+    .then(modeData => {
+        currentMode = modeData.current_mode.toLowerCase();
+        currentTargetMode = currentMode;
+        document.getElementById("current-mode").innerText = currentMode.toUpperCase();
+        updateModeButtons(currentMode);
+        
+        // Then fetch the temperature
+        return fetchWithTimeout("http://blade:5000/set_temperature", {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }, timeout);
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         currentSetTemp = data.desired_temperature;
         currentTargetTemp = currentSetTemp;
-        document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
-        document.getElementById("desired-temperature").innerText = currentSetTemp;
+        
+        // Update temperature displays based on mode
+        if (currentMode && currentMode.toLowerCase() === 'off') {
+            document.getElementById("set-temperature").innerText = "OFF";
+            document.getElementById("desired-temperature").innerText = 'OFF';
+        } else {
+            document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
+            document.getElementById("desired-temperature").innerText = currentSetTemp;
+        }
     })
     .catch(error => reloadPageIfNeeded(error));
 }
@@ -95,6 +126,25 @@ function updateModeButtons(mode) {
     const activeBtn = document.querySelector(`.btn-mode[data-mode="${mode.toLowerCase()}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
+    }
+    
+    // Update control card class for mode-specific styling
+    const controlCard = document.querySelector('.control-card');
+    if (controlCard) {
+        controlCard.classList.remove('mode-off', 'mode-heat', 'mode-cool');
+        controlCard.classList.add(`mode-${mode.toLowerCase()}`);
+    }
+    
+    // Hide/show temperature based on mode
+    const tempDisplay = document.getElementById('desired-temperature');
+    const setTempDisplay = document.getElementById('set-temperature');
+    if (mode.toLowerCase() === 'off') {
+        tempDisplay.innerText = 'OFF';
+        if (setTempDisplay) {
+            setTempDisplay.innerText = 'OFF';
+        }
+    } else {
+        tempDisplay.innerText = currentTargetTemp || currentSetTemp || '--';
     }
 }
 
@@ -135,6 +185,12 @@ function setMode(mode) {
 
 // Function to adjust temperature
 function adjustTemperature(change) {
+    // Don't allow temperature adjustment in OFF mode
+    if (currentMode && currentMode.toLowerCase() === 'off') {
+        showFeedback("Cannot adjust temperature in OFF mode", false, true);
+        return;
+    }
+    
     currentTargetTemp += change;
     if (currentTargetTemp < 50) currentTargetTemp = 50;
     if (currentTargetTemp > 90) currentTargetTemp = 90;
@@ -241,10 +297,17 @@ function updateStatus() {
     .then(response => response.json())
     .then(data => {
         currentSetTemp = data.desired_temperature;
-        document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
-        if (currentSetTemp !== currentTargetTemp && userNotRequestingChange) {
-            currentTargetTemp = currentSetTemp;
-            document.getElementById("desired-temperature").innerText = currentSetTemp;
+        
+        // Update temperature displays based on mode
+        if (currentMode && currentMode.toLowerCase() === 'off') {
+            document.getElementById("set-temperature").innerText = "OFF";
+            document.getElementById("desired-temperature").innerText = 'OFF';
+        } else {
+            document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
+            if (currentSetTemp !== currentTargetTemp && userNotRequestingChange) {
+                currentTargetTemp = currentSetTemp;
+                document.getElementById("desired-temperature").innerText = currentSetTemp;
+            }
         }
     })
     .catch(error => console.error('Error fetching desired temperature:', error));
@@ -329,7 +392,9 @@ function displayScheduledItems() {
             infoDiv.classList.add('schedule-info');
             
             const mainInfo = document.createElement('div');
-            mainInfo.innerHTML = `<strong>${item.time}</strong> - ${item.temperature}°F ${item.mode.toUpperCase()} - ${item.days_of_week}`;
+            // Don't show temperature for OFF mode
+            const tempDisplay = item.mode.toLowerCase() === 'off' ? '' : `${item.temperature}°F `;
+            mainInfo.innerHTML = `<strong>${item.time}</strong> - ${tempDisplay}${item.mode.toUpperCase()} - ${item.days_of_week}`;
             infoDiv.appendChild(mainInfo);
             
             // Add metadata if available
@@ -428,18 +493,26 @@ function deleteScheduledItem(id) {
 // Function to submit schedule
 function submitSchedule() {
     const time = document.getElementById('schedule-time').value;
-    const temp = document.getElementById('schedule-temp').value;
+    const tempInput = document.getElementById('schedule-temp');
+    const temp = tempInput.value;
     const mode = document.getElementById('schedule-mode').value;
     const days = document.getElementById('schedule-days').value;
     
-    if (!time || !temp || !mode) {
-        showFeedback('Please fill in all required fields', false, true);
+    // For OFF mode, temperature is not required
+    if (!time || !mode) {
+        showFeedback('Please fill in time and mode', false, true);
+        return;
+    }
+    
+    // Check temperature only for HEAT/COOL modes
+    if (mode !== 'off' && !temp) {
+        showFeedback('Please specify temperature for ' + mode.toUpperCase() + ' mode', false, true);
         return;
     }
     
     const scheduleData = {
         time: time,
-        temperature: parseInt(temp),
+        temperature: mode === 'off' ? 70 : parseInt(temp), // Default temp for OFF mode
         mode: mode,
         days_of_week: days,
         enabled: true
@@ -481,17 +554,23 @@ function initializeVideoFeed() {
     const video = document.getElementById('video');
     const videoFeedUrl = 'http://blade:5000/video_feed';
     
+    // Set initial placeholder
+    video.style.minHeight = '200px';
+    
     function loadNextFrame() {
         const newFrameUrl = videoFeedUrl + '?t=' + new Date().getTime();
         const imgLoader = new Image();
         
         imgLoader.onload = () => {
+            // Remove min-height once image loads successfully
+            video.style.minHeight = '';
             video.src = newFrameUrl;
             setTimeout(loadNextFrame, 1000);
         };
         
         imgLoader.onerror = () => {
             console.error("Failed to load video frame, retrying...");
+            // Keep trying but less frequently on error
             setTimeout(loadNextFrame, 5000);
         };
         
@@ -509,9 +588,121 @@ function reloadPageIfNeeded(error) {
     }, 1000);
 }
 
+// Vision detection - simplified to just show current reading
+let visionLastUpdateTime = null;
+
+// Update the time since last vision update
+function updateVisionTime() {
+    if (visionLastUpdateTime) {
+        const now = new Date();
+        const secondsAgo = Math.max(0, Math.floor((now - visionLastUpdateTime) / 1000));
+        document.getElementById('vision-last-update').textContent = secondsAgo + 's ago';
+    }
+}
+
+// Update vision temperature data
+function updateVisionData() {
+    // First trigger a new vision reading by requesting the annotated image
+    // This will cause Claude to read the temperature if enough time has passed
+    fetch("/vision_annotated_image")
+        .then(() => {
+            // After triggering the reading, fetch the updated data
+            return fetchWithTimeout("/vision_temperature_data", {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            }, timeout);
+        })
+        .then(response => response.json())
+        .then(data => {
+        // Update current temperature and confidence
+        const confElement = document.getElementById('vision-confidence');
+        const tempElement = document.getElementById('vision-current-temp');
+        
+        if (data.confidence === 'STALE' || data.confidence === 'NO_DATA') {
+            // Don't show stale or missing data
+            tempElement.textContent = '--°F';
+            tempElement.className = 'stat-value large error';
+            confElement.textContent = data.confidence;
+            confElement.className = 'stat-value error';
+        } else if (data.current_temp !== null) {
+            tempElement.textContent = data.current_temp + '°F';
+            tempElement.className = 'stat-value large';
+            confElement.textContent = data.confidence;
+            confElement.className = 'stat-value ' + data.confidence.toLowerCase();
+        }
+        
+        // Update last update time
+        if (data.last_update) {
+            visionLastUpdateTime = new Date(data.last_update);
+            updateVisionTime();
+        }
+    })
+    .catch(error => console.error('Error fetching vision data:', error));
+}
+
+
+// Function to check version
+function checkVersion() {
+    fetchWithTimeout("http://blade:5000/version", {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json'
+        }
+    }, timeout)
+    .then(response => response.json())
+    .then(data => {
+        if (currentVersion === null) {
+            // First time loading
+            currentVersion = data.version;
+            updateVersionBadge(currentVersion);
+        } else if (currentVersion !== data.version) {
+            // Version has changed
+            showFeedback(`New version available: ${data.version}. Please refresh the page.`, false, true);
+            updateVersionBadge(data.version, true);
+        }
+    })
+    .catch(error => console.error('Error checking version:', error));
+}
+
+// Function to update version badge
+function updateVersionBadge(version, hasUpdate = false) {
+    const badge = document.querySelector('.version-badge');
+    if (badge) {
+        badge.textContent = `v${version}`;
+        if (hasUpdate) {
+            badge.style.backgroundColor = '#ff6b6b';
+            badge.style.animation = 'pulse 1s infinite';
+        }
+    }
+}
+
+// Function to handle schedule mode change
+function onScheduleModeChange() {
+    const mode = document.getElementById('schedule-mode').value;
+    const tempInput = document.getElementById('schedule-temp');
+    const tempContainer = tempInput.parentElement;
+    
+    if (mode === 'off') {
+        // Hide temperature input for OFF mode
+        tempInput.style.display = 'none';
+        tempInput.removeAttribute('required');
+        tempInput.value = ''; // Clear the value
+    } else {
+        // Show temperature input for HEAT/COOL modes
+        tempInput.style.display = 'inline-block';
+        tempInput.setAttribute('required', 'required');
+    }
+}
+
 // Initialize when DOM is loaded
 window.onload = function() {
     checkServerHealth();
+    checkVersion();
     
     // Update status every second
     setInterval(updateStatus, 1000);
@@ -519,9 +710,29 @@ window.onload = function() {
     // Update schedules every 5 seconds
     setInterval(displayScheduledItems, 5000);
     
+    // Check version every 30 seconds
+    setInterval(checkVersion, 30000);
+    
     // Initialize video feed
     initializeVideoFeed();
     
+    // Add event listener for schedule mode changes
+    const scheduleModeSelect = document.getElementById('schedule-mode');
+    if (scheduleModeSelect) {
+        scheduleModeSelect.addEventListener('change', onScheduleModeChange);
+        // Initialize on page load
+        onScheduleModeChange();
+    }
+    
     // Display schedules initially
     displayScheduledItems();
+    
+    // Update vision data every 30 seconds (to avoid calling Claude too frequently)
+    setInterval(updateVisionData, 30000);
+    
+    // Update vision time display every second
+    setInterval(updateVisionTime, 1000);
+    
+    // Initial vision update
+    updateVisionData();
 };

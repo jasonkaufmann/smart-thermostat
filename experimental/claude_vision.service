@@ -1,0 +1,14 @@
+[Unit]
+Description=Claude Vision Temperature Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=jason
+WorkingDirectory=/home/jason/smart-thermostat
+ExecStart=/usr/bin/python3 /home/jason/smart-thermostat/experimental/claude_vision_service.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

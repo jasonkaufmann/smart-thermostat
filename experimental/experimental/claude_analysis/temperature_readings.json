@@ -1,0 +1,8 @@
+[
+  {
+    "timestamp": "2025-06-28T19:06:06.365645",
+    "image_path": "experimental/claude_analysis/thermostat_20250628_190606.jpg",
+    "temperature": null,
+    "status": "awaiting_analysis"
+  }
+]

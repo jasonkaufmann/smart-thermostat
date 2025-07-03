@@ -1,0 +1,13 @@
+{
+  "image_path": "experimental/vision_readings/reading_20250628_185817.jpg",
+  "timestamp": "2025-06-28T18:58:17.552691",
+  "temperature": 77,
+  "mode": "unknown",
+  "confidence": "high",
+  "raw_response": "TEMP: 77\nMODE: unknown\nCONFIDENCE: high",
+  "additional_observations": [
+    "Seven-segment LCD display",
+    "Fan Auto indicator visible",
+    "Display appears clear and readable"
+  ]
+}

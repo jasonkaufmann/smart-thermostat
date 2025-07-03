@@ -1,0 +1,3 @@
+ANALYZE THIS IMAGE: experimental/claude_analysis/latest_capture.jpg
+What temperature is displayed on this thermostat?
+Please respond with just the temperature number.

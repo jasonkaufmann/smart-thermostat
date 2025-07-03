@@ -7,21 +7,22 @@
     <meta name="referrer" content="no-referrer">
     <title>Smart Thermostat Control</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='script.js') }}?v={{ range(1, 10000) | random }}" defer></script>
 </head>
 <body>
+    <div class="version-badge">v{{ app_version }}</div>
     <div class="container">
         <h1>Smart Thermostat Control</h1>
         
         <!-- Main Control Panel -->
-        <div class="control-card">
+        <div class="control-card mode-{{ mode_options[current_mode]|lower }}">
             <h2>Temperature Control</h2>
             
             <!-- Mode Selection -->
             <div class="mode-selection">
-                <button class="btn-mode {% if current_mode == 0 %}active{% endif %}" data-mode="off" onclick="setMode('off')">OFF</button>
-                <button class="btn-mode {% if current_mode == 1 %}active{% endif %}" data-mode="heat" onclick="setMode('heat')">HEAT</button>
-                <button class="btn-mode {% if current_mode == 2 %}active{% endif %}" data-mode="cool" onclick="setMode('cool')">COOL</button>
+                <button class="btn-mode {% if current_mode == 0 %}active{% endif %}" data-mode="off" onclick="setMode('off')">⏻ OFF</button>
+                <button class="btn-mode {% if current_mode == 1 %}active{% endif %}" data-mode="heat" onclick="setMode('heat')">🔥 HEAT</button>
+                <button class="btn-mode {% if current_mode == 2 %}active{% endif %}" data-mode="cool" onclick="setMode('cool')">❄️ COOL</button>
             </div>
             
             <!-- Temperature Display and Control -->
@@ -74,9 +75,9 @@
                 <input type="time" id="schedule-time" required>
                 <input type="number" id="schedule-temp" placeholder="Temp" min="50" max="90" required>
                 <select id="schedule-mode">
+                    <option value="off">OFF</option>
                     <option value="heat">HEAT</option>
                     <option value="cool">COOL</option>
-                    <option value="off">OFF</option>
                 </select>
                 <select id="schedule-days">
                     <option value="daily">Daily</option>
@@ -95,6 +96,25 @@
         <div class="video-section">
             <h2>Thermostat Display</h2>
             <img id="video" class="video-stream" alt="Thermostat display">
+        </div>
+        
+        <!-- Vision Detection Section -->
+        <div class="vision-section">
+            <h2>AI Vision Temperature Detection</h2>
+            <div class="vision-stats-row">
+                <div class="stat-item">
+                    <span class="stat-label">Vision Detected:</span>
+                    <span id="vision-current-temp" class="stat-value large">--°F</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Confidence:</span>
+                    <span id="vision-confidence" class="stat-value">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Update:</span>
+                    <span id="vision-last-update" class="stat-value">--</span>
+                </div>
+            </div>
         </div>
     </div>
     

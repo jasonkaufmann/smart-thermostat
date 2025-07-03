@@ -1,0 +1,30 @@
+[Unit]
+Description=Vision Temperature Monitoring Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jason
+Group=jason
+WorkingDirectory=/home/jason/smart-thermostat
+ExecStart=/usr/bin/python3 /home/jason/smart-thermostat/vision_temperature_service.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/tmp /tmp /var/log
+
+# Environment
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/jason/.nvm/versions/node/v18.20.8/bin"
+
+[Install]
+WantedBy=multi-user.target

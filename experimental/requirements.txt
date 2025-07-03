@@ -1,0 +1,12 @@
+# Requirements for experimental AI/OCR temperature detection
+opencv-python==4.8.1.78
+pytesseract==0.3.10
+Pillow==10.1.0
+numpy==1.24.3
+requests==2.31.0
+
+# Optional: For more advanced OCR/ML approaches
+# easyocr==1.7.0
+# paddleocr==2.7.0
+# torch==2.1.0
+# torchvision==0.16.0
