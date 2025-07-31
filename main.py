@@ -14,7 +14,7 @@ import pytz
 from scheduler import ThermostatScheduler, SchedulerError
 
 # Application version - update this when making changes
-APP_VERSION = "1.2.5"  # Display "OFF" instead of temperature when in OFF mode 
+APP_VERSION = "1.3.2"  # Removed confidence display from vision section 
 
 # Set up logging
 # Set up logging to a file
@@ -234,14 +234,31 @@ def activate_screen():
         logging.error("Failed to activate screen")
 
 def read_ambient_temperature():
-    """Read the ambient temperature from a file."""
+    """Read the ambient temperature from AI text file."""
     global ambient_temp, current_desired_temp
     ambient_temp_new = None
     try:
-        with open("temp.txt", "r") as file:
-            ambient_temp_new = float(file.read().strip())
+        # Read from AI temperature text file
+        with open("/home/jason/claude_image_detection/current_temp_ai.txt", "r") as file:
+            content = file.read().strip()
+            if content:
+                ambient_temp_new = float(content)
+                logging.debug("AI temperature reading: %.1f°F", ambient_temp_new)
+            else:
+                logging.warning("AI temperature file is empty")
+    except FileNotFoundError:
+        logging.error("AI temperature file not found at /home/jason/claude_image_detection/current_temp_ai.txt")
+        # Fallback to temp.txt if AI file not available
+        try:
+            with open("temp.txt", "r") as file:
+                ambient_temp_new = float(file.read().strip())
+                logging.warning("Using fallback temp.txt file")
+        except Exception as e:
+            logging.error("Error reading fallback temperature: %s", e)
+    except ValueError as e:
+        logging.error("Error parsing AI temperature value: %s", e)
     except Exception as e:
-        logging.error("Error reading ambient temperature: %s", e)
+        logging.error("Error reading AI temperature: %s", e)
 
     if ambient_temp_new is not None:
         if ambient_temp_new != ambient_temp:
@@ -942,50 +959,43 @@ def handle_exception(error):
     return jsonify({"status": "error", "message": str(error)}), 500
 
 def sync_vision_state_continuously():
-    """Continuously sync vision readings from database to state file"""
-    import sqlite3
+    """Continuously sync AI temperature readings to state file"""
     from datetime import datetime
     
     STATE_FILE = "experimental/vision_state.json"
-    DB_FILE = "vision_temperatures.db"
+    AI_TEMP_FILE = "/home/jason/claude_image_detection/current_temp_ai.txt"
     
     while True:
         try:
-            # Connect to database
-            conn = sqlite3.connect(DB_FILE)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            # Read temperature from AI text file
+            temperature = None
+            try:
+                with open(AI_TEMP_FILE, "r") as file:
+                    content = file.read().strip()
+                    if content:
+                        temperature = float(content)
+            except Exception as e:
+                logging.error(f"Error reading AI temperature file: {e}")
             
-            # Get latest reading
-            cursor.execute('''
-                SELECT * FROM vision_readings 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ''')
-            
-            latest = cursor.fetchone()
-            conn.close()
-            
-            if latest:
-                # Parse timestamp
-                timestamp_str = latest['timestamp']
-                timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
-                
-                # Save to state file
+            if temperature is not None:
+                # Create state data
                 state = {
-                    "temperature": latest['temperature'],
-                    "timestamp": timestamp.isoformat(),
-                    "confidence": latest['confidence']
+                    "temperature": temperature,
+                    "timestamp": datetime.now().isoformat(),
+                    "confidence": "HIGH"  # AI readings are assumed high confidence
                 }
                 
+                # Save to state file for compatibility
                 os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
                 with open(STATE_FILE, 'w') as f:
                     json.dump(state, f)
                 
-                logging.debug(f"Vision state synced: {latest['temperature']}°F at {timestamp_str}")
+                logging.debug(f"AI temperature synced: {temperature}°F")
+            else:
+                logging.warning("No temperature value available from AI file")
             
         except Exception as e:
-            logging.error(f"Error syncing vision state: {e}")
+            logging.error(f"Error syncing AI temperature state: {e}")
         
         # Sleep for 10 seconds before next sync
         time.sleep(10)

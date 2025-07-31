@@ -107,12 +107,21 @@ function initializeDesiredTemperature() {
         currentTargetTemp = currentSetTemp;
         
         // Update temperature displays based on mode
+        const tempUnit = document.querySelector('.temp-unit');
         if (currentMode && currentMode.toLowerCase() === 'off') {
             document.getElementById("set-temperature").innerText = "OFF";
             document.getElementById("desired-temperature").innerText = 'OFF';
+            // Hide the °F unit when in OFF mode
+            if (tempUnit) {
+                tempUnit.style.display = 'none';
+            }
         } else {
             document.getElementById("set-temperature").innerText = currentSetTemp + "°F";
             document.getElementById("desired-temperature").innerText = currentSetTemp;
+            // Show the °F unit when not in OFF mode
+            if (tempUnit) {
+                tempUnit.style.display = 'inline';
+            }
         }
     })
     .catch(error => reloadPageIfNeeded(error));
@@ -138,13 +147,23 @@ function updateModeButtons(mode) {
     // Hide/show temperature based on mode
     const tempDisplay = document.getElementById('desired-temperature');
     const setTempDisplay = document.getElementById('set-temperature');
+    const tempUnit = document.querySelector('.temp-unit');
+    
     if (mode.toLowerCase() === 'off') {
         tempDisplay.innerText = 'OFF';
         if (setTempDisplay) {
             setTempDisplay.innerText = 'OFF';
         }
+        // Hide the °F unit when in OFF mode
+        if (tempUnit) {
+            tempUnit.style.display = 'none';
+        }
     } else {
         tempDisplay.innerText = currentTargetTemp || currentSetTemp || '--';
+        // Show the °F unit when not in OFF mode
+        if (tempUnit) {
+            tempUnit.style.display = 'inline';
+        }
     }
 }
 
@@ -602,44 +621,32 @@ function updateVisionTime() {
 
 // Update vision temperature data
 function updateVisionData() {
-    // First trigger a new vision reading by requesting the annotated image
-    // This will cause Claude to read the temperature if enough time has passed
-    fetch("/vision_annotated_image")
-        .then(() => {
-            // After triggering the reading, fetch the updated data
-            return fetchWithTimeout("/vision_temperature_data", {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            }, timeout);
-        })
-        .then(response => response.json())
-        .then(data => {
-        // Update current temperature and confidence
-        const confElement = document.getElementById('vision-confidence');
+    // Fetch the temperature data
+    fetchWithTimeout("/vision_temperature_data", {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    }, timeout)
+    .then(response => response.json())
+    .then(data => {
+        // Update current temperature
         const tempElement = document.getElementById('vision-current-temp');
         
         if (data.confidence === 'STALE' || data.confidence === 'NO_DATA') {
             // Don't show stale or missing data
             tempElement.textContent = '--°F';
             tempElement.className = 'stat-value large error';
-            confElement.textContent = data.confidence;
-            confElement.className = 'stat-value error';
         } else if (data.current_temp !== null) {
             tempElement.textContent = data.current_temp + '°F';
             tempElement.className = 'stat-value large';
-            confElement.textContent = data.confidence;
-            confElement.className = 'stat-value ' + data.confidence.toLowerCase();
         }
         
-        // Update last update time
-        if (data.last_update) {
-            visionLastUpdateTime = new Date(data.last_update);
-            updateVisionTime();
-        }
+        // Always update the last update time to current time when we fetch data
+        visionLastUpdateTime = new Date();
+        updateVisionTime();
     })
     .catch(error => console.error('Error fetching vision data:', error));
 }
@@ -727,8 +734,8 @@ window.onload = function() {
     // Display schedules initially
     displayScheduledItems();
     
-    // Update vision data every 30 seconds (to avoid calling Claude too frequently)
-    setInterval(updateVisionData, 30000);
+    // Update vision data every 60 seconds (1 minute)
+    setInterval(updateVisionData, 60000);
     
     // Update vision time display every second
     setInterval(updateVisionTime, 1000);

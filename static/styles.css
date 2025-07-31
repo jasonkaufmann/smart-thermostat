@@ -1,10 +1,15 @@
 /* Global Styles */
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f8f9fa;
     margin: 0;
     padding: 20px;
     color: #343a40;
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 /* Version Badge */
@@ -238,6 +243,12 @@ h2 {
 .temp-unit {
     font-size: 1.5em;
     color: #6c757d;
+    transition: opacity 0.3s ease, display 0.3s ease;
+}
+
+/* Hide temperature unit in OFF mode */
+.mode-off .temp-unit {
+    display: none;
 }
 
 /* Light Button */
@@ -585,7 +596,10 @@ h2 {
     padding: 25px;
     margin: 20px auto;
     max-width: 600px;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 .vision-section h2 {
@@ -597,20 +611,23 @@ h2 {
 
 .vision-stats-row {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
     margin-bottom: 30px;
 }
 
 .vision-stats-row .stat-item {
     background: #f8f9fa;
-    padding: 15px 20px;
+    padding: 12px 15px;
     border-radius: 8px;
-    flex: 1;
-    min-width: 120px;
+    flex: 1 1 0; /* Equal width distribution */
+    min-width: 0; /* Allow shrinking below content width */
+    max-width: 100%; /* Prevent overflow */
     border: 1px solid #dee2e6;
     text-align: center;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .vision-stats-row .stat-label {
@@ -656,34 +673,59 @@ h2 {
     color: #fd7e14;
 }
 
+/* Mobile styles for vision section */
 @media (max-width: 768px) {
+    body {
+        padding: 10px; /* Reduce body padding on mobile */
+    }
+    
     .vision-section {
         padding: 15px;
-        margin: 15px 0;
+        margin: 10px 0;
+        width: 100%;
+        border-radius: 8px;
+    }
+    
+    .vision-section h2 {
+        font-size: 1.25rem;
+        margin-bottom: 15px;
     }
     
     .vision-stats-row {
-        gap: 10px;
+        gap: 5px;
+        margin-bottom: 20px;
     }
     
     .vision-stats-row .stat-item {
-        min-width: 100px;
-        padding: 12px 15px;
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 8px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .vision-stats-row .stat-label {
+        font-size: 0.7rem;
+        margin-bottom: 3px;
+    }
+    
+    .vision-stats-row .stat-value {
+        font-size: 0.95rem;
+        word-break: break-word;
     }
     
     .vision-stats-row .stat-value.large {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 }
 
 @media (max-width: 480px) {
     .vision-stats-row {
         flex-direction: column;
-        align-items: stretch;
+        gap: 8px;
     }
     
     .vision-stats-row .stat-item {
         width: 100%;
-        min-width: unset;
+        flex: none;
     }
 }
