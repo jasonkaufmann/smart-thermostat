@@ -42,9 +42,9 @@ session = requests.Session()
 def actuate_servo(servo_motor, start_angle, target_angle):
     """Move the servo from start_angle to target_angle and back."""
     servo_motor.angle = target_angle
-    time.sleep(0.3)
+    time.sleep(0.5)  # Increased from 0.3s - hold button press longer
     servo_motor.angle = start_angle
-    time.sleep(0.5)
+    time.sleep(1.0)  # Increased from 0.5s - more delay between presses
 
 @app.route('/actuate_servo', methods=['POST'])
 def handle_actuate_servo():
